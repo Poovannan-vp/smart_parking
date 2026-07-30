@@ -4,6 +4,13 @@ interface Props {
   building: Building;
 }
 
+const temenosDestinations: Record<string, string> = {
+  "Chennai KG": "Temenos Chennai KG office, Chennai",
+  "Chennai SR": "Temenos Nungambakkam office, Chennai",
+  Bangalore: "Temenos Bangalore office, Bangalore",
+  Hyderabad: "Temenos Hyderabad office, Hyderabad",
+};
+
 export default function BuildingInfoCard({ building }: Props) {
   return (
     <div className="rounded-xl bg-white p-5 shadow">
@@ -34,7 +41,14 @@ export default function BuildingInfoCard({ building }: Props) {
 
       </div>
 
-      <a className="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${building.name}, ${building.city}`)}`} target="_blank" rel="noreferrer">Get directions</a>
+      <a
+        className="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline"
+        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(temenosDestinations[building.name] ?? `${building.name}, ${building.city}`)}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Get directions
+      </a>
     </div>
   );
 }
