@@ -8,9 +8,11 @@ import DashboardLayout from "../shared/layouts/DashboardLayout";
 
 import HomePage from "../features/home/pages/HomePage";
 import LoginPage from "../features/auth/pages/LoginPage";
+import RequireRole from "../features/auth/components/RequireRole";
 
 import EmployeeDashboardPage from "../features/employee/pages/EmployeeDashboardPage";
 import SecurityDashboardPage from "../features/security/pages/SecurityDashboardPage";
+import VehicleLogsPage from "../features/security/pages/VehicleLogsPage";
 import AdminDashboardPage from "../features/admin/pages/AdminDashboardPage";
 import DeveloperDashboardPage from "../features/developer/pages/DeveloperDashboardPage";
 
@@ -43,19 +45,23 @@ export const router = createBrowserRouter([
     children: [
       {
         path: ROUTES.EMPLOYEE,
-        element: <EmployeeDashboardPage />,
+        element: <RequireRole allowedRoles={["EMPLOYEE"]}><EmployeeDashboardPage /></RequireRole>,
       },
       {
         path: ROUTES.SECURITY,
-        element: <SecurityDashboardPage />,
+        element: <RequireRole allowedRoles={["SECURITY"]}><SecurityDashboardPage /></RequireRole>,
+      },
+      {
+        path: ROUTES.VEHICLE_LOGS,
+        element: <RequireRole allowedRoles={["SECURITY"]}><VehicleLogsPage /></RequireRole>,
       },
       {
         path: ROUTES.ADMIN,
-        element: <AdminDashboardPage />,
+        element: <RequireRole allowedRoles={["ADMIN"]}><AdminDashboardPage /></RequireRole>,
       },
       {
         path: ROUTES.DEVELOPER,
-        element: <DeveloperDashboardPage />,
+        element: <RequireRole allowedRoles={["DEVELOPER"]}><DeveloperDashboardPage /></RequireRole>,
       },
     ],
   },

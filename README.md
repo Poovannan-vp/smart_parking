@@ -1,75 +1,157 @@
-# React + TypeScript + Vite
+# Smart Parking System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Smart Parking is a role-based web application for monitoring company parking availability, recording gate vehicle activity, and managing buildings and users.
 
-Currently, two official plugins are available:
+It is built with React, TypeScript, Vite, Tailwind CSS, Firebase Authentication, and Cloud Firestore.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What the application does
 
-## React Compiler
+- Shows real-time parking availability for every building on the public Home page.
+- Lets Security staff update parking occupancy safely within their assigned building.
+- Records daily vehicle gate entries and prevents the same vehicle from being logged twice on the same building/date.
+- Tracks vehicle exits, corrections, and voids with an audit trail.
+- Lets Admins manage buildings, parking capacity, application users, and daily reports.
+- Gives Developers diagnostics, audit visibility, and role-testing shortcuts.
+- Gives Employees a profile, favourite building, personal vehicle registration, and read-only live availability for all buildings.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Roles and permissions
 
-## Expanding the ESLint configuration
+| Role | Main capabilities |
+| --- | --- |
+| Public visitor | View Home-page building availability and directions. |
+| Employee | View every building, search availability, save a favourite building, register personal vehicles, and view parking guidance. |
+| Security | Update occupancy for the assigned building; create, search, correct, void, and mark vehicle logs as exited. |
+| Admin | Manage buildings, capacities, users, roles, assignments, password-reset emails, analytics, reports, CSV export, and audit history. |
+| Developer | View diagnostics and recent audit activity, export diagnostics, and access other role portals for testing. Developer-wide access must be restricted before production. |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Main workflows
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Parking availability
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The Home page subscribes to a selected building in real time. It displays capacity, occupied spaces, available spaces, and Full/Almost Full indicators for each parking area.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Security occupancy changes use Firestore transactions. This prevents counts below zero, counts above capacity, and concurrent-update overwrites.
 
+### Gate vehicle monitoring
+
+Security creates a vehicle log with a vehicle number and configured parking area. The record is stored in the top-level `vehicleLogs` collection and is unique per building, vehicle number, and date.
+
+Vehicle logs support these lifecycle states:
+
+- `ACTIVE` — vehicle is currently recorded as inside.
+- `EXITED` — Security recorded the vehicle exit.
+- `VOID` — an incorrect entry was voided without deleting history.
+
+Corrections, exits, and voids are written to `vehicleLogs/{logId}/audit` with the acting user and reason where required.
+
+### Authentication and routing
+
+All staff use the same **Staff Login** page. Firebase Email/Password Authentication signs in the user, then the app reads `users/{uid}` to determine the role and redirects to the appropriate dashboard.
+
+Users must have a Firestore profile with a valid role and `active: true`.
+
+## Project structure
+
+```text
+src/
+  app/                  Routes and application providers
+  config/               Firebase configuration
+  features/             Role-specific screens and components
+    admin/              Building, user, report, and analytics management
+    auth/               Login, session state, and route guards
+    developer/          Diagnostics and role testing
+    employee/           Employee profile and availability dashboard
+    home/               Public real-time availability page
+    security/           Parking updates and vehicle log workflow
+  services/             Firestore and Firebase operations
+  shared/               Shared UI components and layouts
+  scripts/              Firestore/user bootstrap scripts
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Local setup
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Prerequisites
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js 22.12 or newer is recommended.
+- A Firebase project with Cloud Firestore and Email/Password Authentication.
 
+### Install and run
+
+```powershell
+npm install
+npm run dev
 ```
+
+Open the local URL shown by Vite, normally `http://localhost:5173`.
+
+### Environment configuration
+
+Copy `.env.example` to `.env` and provide the Vite Firebase values:
+
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
+
+Never commit `.env`, service-account JSON files, passwords, or credentials. `.env` is intentionally ignored by Git.
+
+## Firebase setup
+
+1. Enable **Email/Password** under Firebase Authentication → Sign-in method.
+2. Create an initial Admin Firebase Authentication account.
+3. Create its matching `users/{uid}` Firestore profile, or use the bootstrap script below.
+4. Publish the project Firestore rules from `firestore.rules`.
+
+Example user profile:
+
+```json
+{
+  "email": "admin@company.com",
+  "employeeId": "ADM001",
+  "firstName": "Admin",
+  "lastName": "User",
+  "role": "ADMIN",
+  "buildingId": "",
+  "active": true
+}
+```
+
+Valid roles are `EMPLOYEE`, `SECURITY`, `ADMIN`, and `DEVELOPER`.
+
+For a detailed initial-user setup, see [AUTH_SETUP.md](AUTH_SETUP.md).
+
+### Bootstrap the initial administrator
+
+With a local Firebase Admin service-account credential configured, run:
+
+```powershell
+npm run bootstrap:users
+```
+
+The script creates or updates the profile for `BOOTSTRAP_ADMIN_UID`. See `.env.example` for the required variables.
+
+## Available commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the Vite development server. |
+| `npm run build` | Type-check and create a production bundle. |
+| `npm run lint` | Run ESLint. |
+| `npm run preview` | Preview a production build locally. |
+| `npm run seed` | Seed example building data. |
+| `npm run bootstrap:users` | Create/update the initial Admin Auth user and profile. |
+
+## Security notes
+
+- Publish `firestore.rules` before sharing the system beyond development.
+- The Developer role currently has broad testing access. Restrict it before production.
+- Admin user creation is suitable for this internal MVP. For a production deployment, move privileged user provisioning to a Firebase Cloud Function or backend service.
+- Update Node.js before deployment; the current Firebase Admin/Vite dependency versions require a newer Node release than Node 20.18.
+
+## Validation status
+
+The project production build and lint command complete successfully. ESLint currently reports a small number of React Hook dependency warnings that should be addressed during future cleanup.

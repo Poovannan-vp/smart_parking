@@ -4,6 +4,7 @@ export const ROUTES = {
 
   EMPLOYEE: "/employee",
   SECURITY: "/security",
+  VEHICLE_LOGS: "/security/vehicle-logs",
   ADMIN: "/admin",
   DEVELOPER: "/developer",
 } as const;

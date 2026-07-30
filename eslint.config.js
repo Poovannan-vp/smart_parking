@@ -18,5 +18,11 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // Firestore reads and subscriptions intentionally update React state from effects.
+      'react-hooks/set-state-in-effect': 'off',
+      // The auth provider and hook share one module by design.
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

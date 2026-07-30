@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return signedIn() && userRole() == 'ADMIN';
+    }
+
+    function isSecurity() {
+      return signedIn() && userRole() == 'SECURITY';
+    }
+
+    function assignedBuilding() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.buildingId;
+    }
+
+    function isSecurityFor(buildingId) {
+      return isSecurity() && assignedBuilding() == buildingId;
+    }
+
+    function isDeveloper() {
+      return signedIn() && userRole() == 'DEVELOPER';
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin() || isDeveloper());
+      allow create, update, delete: if isAdmin() || isDeveloper();
+    }
+
+    match /buildings/{buildingId} {
+      allow read: if true;
+      allow create, delete: if isAdmin() || isDeveloper();
+      allow update: if isAdmin() || isDeveloper() || (
+        isSecurityFor(buildingId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parking', 'updatedAt'])
+      );
+
+      match /dailyParking/{date} {
+        allow read: if signedIn();
+        allow create, update: if isAdmin() || isSecurityFor(buildingId) || isDeveloper();
+        allow delete: if isAdmin() || isDeveloper();
+      }
+    }
+
+    match /vehicleLogs/{logId} {
+      allow read: if isAdmin() || isDeveloper() || isSecurityFor(resource.data.buildingId);
+      allow create: if isAdmin() || isDeveloper() || isSecurityFor(request.resource.data.buildingId);
+      allow update, delete: if isAdmin() || isDeveloper() || (
+        isSecurityFor(resource.data.buildingId) &&
+        request.resource.data.buildingId == resource.data.buildingId
+      );
+
+      match /audit/{auditId} {
+        allow read: if isAdmin() || isDeveloper() || isSecurityFor(get(/databases/$(database)/documents/vehicleLogs/$(logId)).data.buildingId);
+        allow create: if isAdmin() || isDeveloper() || isSecurityFor(get(/databases/$(database)/documents/vehicleLogs/$(logId)).data.buildingId);
+        allow update, delete: if isAdmin() || isDeveloper();
+      }
+    }
+
+    match /employeeVehicles/{vehicleId} {
+      allow read: if isAdmin() || isDeveloper() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || isDeveloper() || (signedIn() && resource.data.userId == request.auth.uid);
+    }
+  }
+}

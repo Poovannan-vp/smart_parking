@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import useAuth from "../../auth/hooks/useAuth";
 
 import PageContainer from "../../../shared/components/PageContainer";
 import Button from "../../../shared/components/Button";
-
 import BuildingSelector from "../../home/components/BuildingSelector";
 import ParkingCounterList from "../components/ParkingCounterList";
 
@@ -14,11 +15,25 @@ import {
 import useParking from "../hooks/useParking";
 
 export default function SecurityDashboardPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isDeveloper = user?.role === "DEVELOPER";
   const [buildings, setBuildings] = useState<BuildingOption[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState("");
+  const [buildingError, setBuildingError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadBuildings() {
+      if (!isDeveloper) {
+        if (!user?.buildingId) {
+          setBuildingError("Your account has no assigned building. Ask an Admin to assign one.");
+          return;
+        }
+
+        setSelectedBuilding(user.buildingId);
+        return;
+      }
+
       try {
         const data = await getBuildings();
 
@@ -29,31 +44,29 @@ export default function SecurityDashboardPage() {
         }
       } catch (error) {
         console.error("Failed to load buildings", error);
+        setBuildingError("Unable to load buildings.");
       }
     }
 
-    loadBuildings();
-  }, []);
+    void loadBuildings();
+  }, [isDeveloper, user?.buildingId]);
 
   const {
     parking,
     loading,
+    isUpdating,
+    error,
     increase,
     decrease,
-    save,
   } = useParking(selectedBuilding);
 
- async function handleSave() {
-  console.log("Handle Save");
-
-  try {
-    await save();
-
-    console.log("Save Completed");
-  } catch (error) {
-    console.error(error);
+  if (buildingError) {
+    return (
+      <PageContainer>
+        <div className="flex h-64 items-center justify-center text-red-600">{buildingError}</div>
+      </PageContainer>
+    );
   }
-}
 
   if (loading) {
     return (
@@ -83,27 +96,38 @@ export default function SecurityDashboardPage() {
           Security Dashboard
         </h1>
 
-        <BuildingSelector
-          buildings={buildings}
-          selectedBuilding={selectedBuilding}
-          onChange={setSelectedBuilding}
-        />
+        <Button fullWidth variant="secondary" onClick={() => navigate("/security/vehicle-logs")}>
+          Vehicle Log
+        </Button>
+
+        {isDeveloper ? (
+          <BuildingSelector
+            buildings={buildings}
+            selectedBuilding={selectedBuilding}
+            onChange={setSelectedBuilding}
+          />
+        ) : (
+          <p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-600">
+            Updates are restricted to your assigned building.
+          </p>
+        )}
 
         <ParkingCounterList
           parking={parking}
           onIncrease={increase}
           onDecrease={decrease}
+          isUpdating={isUpdating}
         />
 
-<Button
-  fullWidth
-  onClick={() => {
-    console.log("Button Clicked");
-    handleSave();
-  }}
->
-  Update Parking
-</Button>
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        )}
+
+        <p className="text-center text-sm text-slate-500">
+          Changes are saved immediately and reflected on the home page.
+        </p>
 
       </div>
     </PageContainer>

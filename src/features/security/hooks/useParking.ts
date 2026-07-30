@@ -3,69 +3,70 @@ import { useEffect, useState } from "react";
 import type { Parking } from "../../../types/parking";
 
 import {
-  getParking,
-  updateParking,
+  changeParkingOccupancy,
 } from "../../../services/parkingService";
+import { subscribeToBuilding } from "../../../services/buildingService";
 
 export default function useParking(buildingId: string) {
   const [parking, setParking] = useState<Parking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingAreas, setUpdatingAreas] = useState<Set<keyof Parking>>(
+    () => new Set(),
+  );
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!buildingId) return;
-
-    async function loadParking() {
-      setLoading(true);
-
-      const data = await getParking(buildingId);
-
-      setParking(data);
-
+    if (!buildingId) {
+      setParking(null);
       setLoading(false);
+      return;
     }
 
-    loadParking();
+    setLoading(true);
+    setError(null);
+
+    return subscribeToBuilding(
+      buildingId,
+      (building) => {
+        setParking(building?.parking ?? null);
+        setLoading(false);
+      },
+      (subscriptionError) => {
+        setError(subscriptionError.message);
+        setLoading(false);
+      },
+    );
   }, [buildingId]);
 
-  function increase(area: keyof Parking) {
-    if (!parking || !parking[area]) return;
+  async function changeOccupancy(area: keyof Parking, change: 1 | -1) {
+    if (!buildingId || updatingAreas.has(area)) return;
 
-    setParking({
-      ...parking,
-      [area]: {
-        ...parking[area]!,
-        occupied: parking[area]!.occupied + 1,
-      },
-    });
+    setUpdatingAreas((currentAreas) => new Set(currentAreas).add(area));
+    setError(null);
+
+    try {
+      await changeParkingOccupancy(buildingId, area, change);
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : "Unable to update parking occupancy.",
+      );
+    } finally {
+      setUpdatingAreas((currentAreas) => {
+        const nextAreas = new Set(currentAreas);
+        nextAreas.delete(area);
+        return nextAreas;
+      });
+    }
   }
-
-  function decrease(area: keyof Parking) {
-    if (!parking || !parking[area]) return;
-
-    if (parking[area]!.occupied === 0) return;
-
-    setParking({
-      ...parking,
-      [area]: {
-        ...parking[area]!,
-        occupied: parking[area]!.occupied - 1,
-      },
-    });
-  }
-
-async function save() {
-  if (!parking) return;
-
-  console.log("Saving...", parking);
-
-  await updateParking(buildingId, parking);
-}
 
   return {
     parking,
     loading,
-    increase,
-    decrease,
-    save,
+    isUpdating: (area: keyof Parking) => updatingAreas.has(area),
+    error,
+    increase: (area: keyof Parking) => changeOccupancy(area, 1),
+    decrease: (area: keyof Parking) => changeOccupancy(area, -1),
   };
 }

@@ -24,6 +24,7 @@ export default function HomePage() {
   const [selectedBuilding, setSelectedBuilding] = useState("");
   const [building, setBuilding] = useState<Building | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Load all buildings for dropdown
   useEffect(() => {
@@ -38,6 +39,8 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error("Failed to load buildings:", error);
+        setError("Unable to load buildings.");
+        setLoading(false);
       }
     };
 
@@ -49,13 +52,18 @@ export default function HomePage() {
     if (!selectedBuilding) return;
 
     setLoading(true);
+    setError(null);
 
     const unsubscribe = subscribeToBuilding(
       selectedBuilding,
       (data) => {
         setBuilding(data);
         setLoading(false);
-      }
+      },
+      () => {
+        setError("Unable to receive real-time parking updates.");
+        setLoading(false);
+      },
     );
 
     return () => unsubscribe();
@@ -71,12 +79,12 @@ export default function HomePage() {
     );
   }
 
-  if (!building) {
+  if (error || !building) {
     return (
       <PageContainer>
         <div className="flex h-64 items-center justify-center">
           <p className="text-red-500">
-            Unable to load building information.
+            {error ?? "Unable to load building information."}
           </p>
         </div>
       </PageContainer>
@@ -102,8 +110,12 @@ export default function HomePage() {
           fullWidth
           onClick={() => navigate("/login")}
         >
-          Employee Login
+          Staff Login
         </Button>
+
+        <p className="text-center text-sm text-slate-500">
+          Employees, Security, Admin, and Developers
+        </p>
       </div>
     </PageContainer>
   );

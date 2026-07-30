@@ -25,6 +25,7 @@ export default function ParkingStatusCard({
 
           const available =
             area.capacity - area.occupied;
+          const availabilityLabel = available === 0 ? "Full" : available <= Math.ceil(area.capacity * 0.1) ? "Almost Full" : "Available";
 
           return (
             <div
@@ -34,6 +35,8 @@ export default function ParkingStatusCard({
               <h3 className="mb-3 font-semibold capitalize">
                 {name.replace(/([A-Z])/g, " $1")}
               </h3>
+
+              <p className={`mb-3 text-sm font-medium ${available === 0 ? "text-red-600" : availabilityLabel === "Almost Full" ? "text-amber-600" : "text-green-600"}`}>{availabilityLabel}</p>
 
               <div className="grid grid-cols-3 gap-3 text-center">
 

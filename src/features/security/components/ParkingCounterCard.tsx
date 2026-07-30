@@ -4,6 +4,7 @@ interface Props {
   occupied: number;
   onIncrease: () => void;
   onDecrease: () => void;
+  disabled?: boolean;
 }
 
 export default function ParkingCounterCard({
@@ -12,6 +13,7 @@ export default function ParkingCounterCard({
   occupied,
   onIncrease,
   onDecrease,
+  disabled = false,
 }: Props) {
   const available = capacity - occupied;
 
@@ -59,7 +61,10 @@ export default function ParkingCounterCard({
       <div className="mt-6 flex items-center justify-center gap-6">
 
         <button
+          type="button"
           onClick={onDecrease}
+          disabled={disabled || occupied === 0}
+          aria-label={`Remove vehicle from ${title}`}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-xl font-bold text-white hover:bg-red-600"
         >
           -
@@ -70,7 +75,10 @@ export default function ParkingCounterCard({
         </span>
 
         <button
+          type="button"
           onClick={onIncrease}
+          disabled={disabled || occupied >= capacity}
+          aria-label={`Add vehicle to ${title}`}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-xl font-bold text-white hover:bg-green-600"
         >
           +

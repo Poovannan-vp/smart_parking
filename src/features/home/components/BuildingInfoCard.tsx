@@ -33,6 +33,8 @@ export default function BuildingInfoCard({ building }: Props) {
         </span>
 
       </div>
+
+      <a className="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${building.name}, ${building.city}`)}`} target="_blank" rel="noreferrer">Get directions</a>
     </div>
   );
 }
