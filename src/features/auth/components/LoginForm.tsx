@@ -13,6 +13,7 @@ export default function LoginForm() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,11 +38,12 @@ export default function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <h1 className="text-center text-2xl font-bold">Smart Parking</h1>
-          <p className="mt-2 text-center text-slate-500">Sign in to your account</p>
+    <Card className="w-full max-w-sm rounded-[2rem] p-8 shadow-2xl shadow-slate-900/10">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2 text-center">
+          <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Smart Parking Portal</p>
+          <h1 className="text-3xl font-semibold text-slate-900">Sign in</h1>
+          <p className="text-sm text-slate-500">Access your role-based dashboard for live parking operations.</p>
         </div>
 
         <Input
@@ -64,10 +66,29 @@ export default function LoginForm() {
           required
         />
 
-        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+            />
+            Remember me
+          </label>
+          <button type="button" className="text-slate-500 hover:text-slate-700" onClick={(event) => event.preventDefault()}>
+            Forgot password?
+          </button>
+        </div>
+
+        {error && (
+          <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-700" role="alert">
+            {error}
+          </div>
+        )}
 
         <Button fullWidth type="submit" disabled={loading}>
-          {loading ? "Signing in..." : "Login"}
+          {loading ? "Signing in..." : "Continue"}
         </Button>
       </form>
     </Card>
