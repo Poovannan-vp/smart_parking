@@ -1,82 +1,109 @@
 import { useEffect, useState } from "react";
-import { HiChartBarSquare, HiShieldCheck } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
-
-import BuildingSelector from "../components/BuildingSelector";
-import BuildingInfoCard from "../components/BuildingInfoCard";
-import ParkingStatusCard from "../components/ParkingStatusCard";
 
 import Button from "../../../shared/components/Button";
 import Card from "../../../shared/components/Card";
 import EmptyState from "../../../shared/components/EmptyState";
 import LoadingState from "../../../shared/components/LoadingState";
+import Logo from "../../../shared/components/Logo";
 import PageContainer from "../../../shared/components/PageContainer";
-import PageHeader from "../../../shared/components/PageHeader";
 import StatusBadge from "../../../shared/components/StatusBadge";
+import { ROUTES } from "../../../app/routes";
 
 import {
-  getBuildings,
-  subscribeToBuilding,
-  type BuildingOption,
+  getManagedBuildings,
+  type ManagedBuilding,
 } from "../../../services/buildingService";
 
-import type { Building } from "../../../types/building";
+const googleMapsDestinations: Record<string, string> = {
+  "Chennai KG": "Temenos Chennai KG office, Chennai",
+  "Chennai SR": "Temenos Nungambakkam office, Chennai",
+  Bangalore: "Temenos Bangalore office, Bangalore",
+  Hyderabad: "Temenos Hyderabad office, Hyderabad",
+};
+
+function getGoogleMapsUrl(building: ManagedBuilding) {
+  const destination = googleMapsDestinations[building.name] ?? `${building.name}, ${building.city}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`;
+}
+
+function getAvailabilityStatus(available: number, capacity: number) {
+  if (available === 0) return "Full";
+  if (available <= Math.ceil(capacity * 0.1)) return "Almost Full";
+  if (available <= Math.ceil(capacity * 0.3)) return "Busy";
+  return "Available";
+}
+
+function getAvailabilityBadge(available: number, capacity: number) {
+  const status = getAvailabilityStatus(available, capacity);
+  switch (status) {
+    case "Full":
+      return "bg-rose-100 text-rose-700";
+    case "Almost Full":
+      return "bg-amber-100 text-amber-700";
+    case "Busy":
+      return "bg-slate-100 text-slate-700";
+    default:
+      return "bg-emerald-100 text-emerald-700";
+  }
+}
+
+function formatUpdatedAt(value: unknown) {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return value.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  if (typeof value === "object" && value !== null && "toDate" in value && typeof (value as { toDate?: unknown }).toDate === "function") {
+    const date = (value as { toDate: () => Date }).toDate();
+    return date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  const parsed = new Date(String(value));
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  return null;
+}
 
 export default function HomePage() {
   const navigate = useNavigate();
 
-  const [buildings, setBuildings] = useState<BuildingOption[]>([]);
-  const [selectedBuilding, setSelectedBuilding] = useState("");
-  const [building, setBuilding] = useState<Building | null>(null);
+  const [buildings, setBuildings] = useState<ManagedBuilding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadBuildings = async () => {
       try {
-        const buildingList = await getBuildings();
-        setBuildings(buildingList);
-        if (buildingList.length > 0) {
-          setSelectedBuilding(buildingList[0].id);
-        }
+        setBuildings(await getManagedBuildings());
       } catch (error) {
         console.error("Failed to load buildings:", error);
         setError("Unable to load buildings.");
+      } finally {
         setLoading(false);
       }
     };
 
     loadBuildings();
   }, []);
-
-  useEffect(() => {
-    if (!selectedBuilding) return;
-
-    setLoading(true);
-    setError(null);
-
-    const unsubscribe = subscribeToBuilding(
-      selectedBuilding,
-      (data) => {
-        setBuilding(data);
-        setLoading(false);
-      },
-      () => {
-        setError("Unable to receive real-time parking updates.");
-        setLoading(false);
-      },
-    );
-
-    return () => unsubscribe();
-  }, [selectedBuilding]);
-
-  const totalCapacity = building
-    ? Object.values(building.parking).reduce((sum, area) => sum + (area ? area.capacity : 0), 0)
-    : 0;
-  const totalOccupied = building
-    ? Object.values(building.parking).reduce((sum, area) => sum + (area ? area.occupied : 0), 0)
-    : 0;
-  const totalAvailable = totalCapacity - totalOccupied;
 
   if (loading) {
     return (
@@ -86,12 +113,12 @@ export default function HomePage() {
     );
   }
 
-  if (error || !building) {
+  if (error) {
     return (
       <PageContainer>
         <EmptyState
           title="Unable to load parking data"
-          description={error ?? "We could not retrieve building information at this time."}
+          description={error}
           action={
             <Button variant="secondary" onClick={() => window.location.reload()}>
               Retry
@@ -105,152 +132,108 @@ export default function HomePage() {
   return (
     <PageContainer>
       <div className="mx-auto max-w-7xl space-y-10 py-10">
-        <PageHeader
-          title="Smart Parking Management"
-          subtitle="Enterprise parking visibility, role-based workflows, and live building occupancy at a glance."
-          actions={
-            <Button variant="primary" onClick={() => navigate("/login")}>Staff Login</Button>
-          }
-        />
-
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_420px]">
-          <div className="space-y-6 rounded-[2rem] bg-slate-950 p-10 text-white shadow-2xl shadow-slate-900/20">
-            <div className="rounded-[2rem] bg-white/10 p-6 shadow-inner shadow-slate-950/10">
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-300">Live campus control</p>
-              <h2 className="mt-4 text-4xl font-semibold tracking-tight">See parking availability before you arrive.</h2>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                Monitor building occupancy, capacity, and access workflows using a modern dashboard built for employees, security teams, and administrators.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl bg-white/10 p-5">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Buildings</p>
-                <p className="mt-3 text-3xl font-semibold">{buildings.length}</p>
-              </div>
-              <div className="rounded-3xl bg-white/10 p-5">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Available spaces</p>
-                <p className="mt-3 text-3xl font-semibold">{totalAvailable}</p>
-              </div>
-              <div className="rounded-3xl bg-white/10 p-5">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Current building</p>
-                <p className="mt-3 text-3xl font-semibold">{building.name}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl bg-slate-900/70 p-5">
-                <div className="flex items-center gap-3 text-sm text-slate-400">
-                  <HiChartBarSquare className="h-5 w-5 text-slate-300" />
-                  <span>Occupancy status</span>
-                </div>
-                <p className="mt-4 text-2xl font-semibold">{Math.round((totalOccupied / Math.max(totalCapacity, 1)) * 100)}%</p>
-                <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-800">
-                  <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500" style={{ width: `${Math.min(100, Math.round((totalOccupied / Math.max(totalCapacity, 1)) * 100))}%` }} />
-                </div>
-              </div>
-              <div className="rounded-3xl bg-slate-900/70 p-5">
-                <div className="flex items-center gap-3 text-sm text-slate-400">
-                  <HiShieldCheck className="h-5 w-5 text-slate-300" />
-                  <span>Security readiness</span>
-                </div>
-                <p className="mt-4 text-2xl font-semibold">Instant gate control</p>
-                <p className="mt-3 text-sm text-slate-400">Built for fast entry, exit, and audit workflows.</p>
-              </div>
+        <header className="flex flex-col gap-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-white shadow-sm shadow-slate-900/10">
+              <Logo className="h-8" hideText={true} />
             </div>
           </div>
+          <nav className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="transition hover:text-slate-900">Home</button>
+            <button type="button" onClick={() => document.getElementById("buildings")?.scrollIntoView({ behavior: "smooth" })} className="transition hover:text-slate-900">Office availability</button>
+            <button type="button" onClick={() => navigate(ROUTES.LOGIN)} className="transition hover:text-slate-900">Login</button>
+            <button type="button" onClick={() => navigate(ROUTES.SIGNUP)} className="rounded-2xl border border-slate-200 bg-slate-100 px-3 py-2 text-slate-900 transition hover:bg-slate-200">Request access</button>
+          </nav>
+        </header>
 
-          <div className="space-y-6">
-            <Card>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-500">Building selector</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">Live campus switching</p>
-                </div>
-                <div className="max-w-xs">
-                  <BuildingSelector
-                    buildings={buildings}
-                    selectedBuilding={selectedBuilding}
-                    onChange={setSelectedBuilding}
-                  />
-                </div>
-              </div>
-              <div className="mt-6 grid gap-4">
-                <div className="rounded-3xl bg-slate-50 p-5">
-                  <div className="text-sm uppercase tracking-[0.24em] text-slate-500">Location</div>
-                  <p className="mt-3 text-xl font-semibold text-slate-900">{building.name}</p>
-                  <p className="mt-1 text-sm text-slate-600">{building.city}</p>
-                  <StatusBadge variant={building.status === "Open" ? "success" : "danger"} className="mt-4 inline-flex">
-                    {building.status}
-                  </StatusBadge>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-5">
-                  <div className="text-sm uppercase tracking-[0.24em] text-slate-500">Parking progress</div>
-                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-200">
-                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500" style={{ width: `${Math.min(100, Math.round((totalOccupied / Math.max(totalCapacity, 1)) * 100))}%` }} />
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
-                    <span>{totalOccupied} occupied</span>
-                    <span>{totalAvailable} available</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
+        <section className="space-y-6">
+          <div className="max-w-2xl space-y-4">
+            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Smart Parking Access</p>
+            <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">View parking availability for each office before you arrive.</h1>
+            <p className="text-base leading-7 text-slate-600">Check real-time capacity and occupancy for every branch, then sign in or request access to continue.</p>
+          </div>
 
-            <Card>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-500">Focus areas</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">What matters most</p>
-                </div>
-                <Button variant="ghost" onClick={() => navigate("/login")}>Enter portal</Button>
-              </div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-3xl bg-slate-50 p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-slate-800">Live availability</p>
-                  <p className="mt-2 text-sm text-slate-600">View open and closed spaces in real time.</p>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-slate-800">Role-based ops</p>
-                  <p className="mt-2 text-sm text-slate-600">Employees, security, and admin workflows.</p>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-slate-800">Data insights</p>
-                  <p className="mt-2 text-sm text-slate-600">Track parking utilization across sites.</p>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-slate-800">Audit ready</p>
-                  <p className="mt-2 text-sm text-slate-600">Vehicle log history and system diagnostics.</p>
-                </div>
-              </div>
-            </Card>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="primary" onClick={() => navigate(ROUTES.LOGIN)}>Login</Button>
+            <Button variant="secondary" onClick={() => navigate(ROUTES.SIGNUP)}>Request access</Button>
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
-          <Card>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-500">Building details</p>
-                <p className="mt-2 text-xl font-semibold text-slate-900">Operational overview</p>
-              </div>
-            </div>
-            <div className="mt-6 space-y-6">
-              <BuildingInfoCard building={building} />
-            </div>
-          </Card>
-          <Card>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-500">Parking areas</p>
-                <p className="mt-2 text-xl font-semibold text-slate-900">Current occupancy</p>
-              </div>
-            </div>
-            <div className="mt-6">
-              <ParkingStatusCard building={building} />
-            </div>
-          </Card>
+        <section id="buildings" className="space-y-6">
+          <div>
+            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Office availability</p>
+            <h2 className="text-2xl font-semibold text-slate-900">Parking by office</h2>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {buildings.map((branch) => {
+              const branchCapacity = Object.values(branch.parking).reduce((sum, area) => sum + (area ? area.capacity : 0), 0);
+              const branchOccupied = Object.values(branch.parking).reduce((sum, area) => sum + (area ? area.occupied : 0), 0);
+              const branchAvailable = branchCapacity - branchOccupied;
+              const occupancyRate = branchCapacity ? Math.round((branchOccupied / branchCapacity) * 100) : 0;
+              const availabilityStatus = getAvailabilityStatus(branchAvailable, branchCapacity);
+              const availabilityBadge = getAvailabilityBadge(branchAvailable, branchCapacity);
+              const lastUpdated = formatUpdatedAt(branch.updatedAt);
+
+              return (
+                <Card key={branch.id} className="p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">{branch.name}</p>
+                      <p className="mt-1 text-sm text-slate-500">{branch.city}</p>
+                    </div>
+                    <StatusBadge variant={branch.status === "Open" ? "success" : "danger"}>{branch.status}</StatusBadge>
+                  </div>
+
+                  <div className="mt-6 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">{branchCapacity}</p>
+                      <p>Total slots</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{branchAvailable}</p>
+                      <p>Available</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{branchOccupied}</p>
+                      <p>Occupied</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm font-medium text-slate-900">Occupancy progress</p>
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${availabilityBadge}`}>{availabilityStatus}</span>
+                    </div>
+                    <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500" style={{ width: `${Math.min(100, occupancyRate)}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-slate-500">
+                      <span>{occupancyRate}% occupied</span>
+                      <span>{lastUpdated ? `Updated ${lastUpdated}` : "Last updated unavailable"}</span>
+                    </div>
+                  </div>
+
+                  <a
+                    href={getGoogleMapsUrl(branch)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-6 inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
+                  >
+                    View on Google Maps
+                  </a>
+                </Card>
+              );
+            })}
+          </div>
         </section>
+
+        <footer className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>Company Name | Smart Parking Access</p>
+            <p>© 2026 Company Name</p>
+          </div>
+        </footer>
       </div>
     </PageContainer>
   );

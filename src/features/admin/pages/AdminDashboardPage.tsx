@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import Button from "../../../shared/components/Button";
 import Card from "../../../shared/components/Card";
@@ -6,8 +6,8 @@ import Input from "../../../shared/components/Input";
 import PageContainer from "../../../shared/components/PageContainer";
 import PageHeader from "../../../shared/components/PageHeader";
 import StatusBadge from "../../../shared/components/StatusBadge";
-import UserManagementPanel from "../components/UserManagementPanel";
 import AdminAnalyticsPanel from "../components/AdminAnalyticsPanel";
+import UserManagementPanel from "../components/UserManagementPanel";
 import {
   createBuilding,
   getManagedBuildings,
@@ -46,10 +46,12 @@ export default function AdminDashboardPage() {
   const [buildings, setBuildings] = useState<ManagedBuilding[]>([]);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<BuildingInput>(emptyBuilding);
+  const buildingFormRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   const totals = useMemo(() => {
     return buildings.reduce(
@@ -87,9 +89,25 @@ export default function AdminDashboardPage() {
     setDraft(toBuildingInput(building));
     setError(null);
     setSuccess(null);
+    setShowForm(true);
+    setTimeout(() => {
+      buildingFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   }
 
   function startNewBuilding() {
+    setSelectedBuildingId(null);
+    setDraft(emptyBuilding);
+    setError(null);
+    setSuccess(null);
+    setShowForm(true);
+    setTimeout(() => {
+      buildingFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  function closeForm() {
+    setShowForm(false);
     setSelectedBuildingId(null);
     setDraft(emptyBuilding);
     setError(null);
@@ -175,7 +193,7 @@ export default function AdminDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto max-w-6xl space-y-8 py-8">
+      <div className="mx-auto max-w-6xl space-y-10 py-10">
         <PageHeader
           title="Admin Dashboard"
           subtitle="Manage buildings, users, and parking analytics with enterprise clarity."
@@ -191,14 +209,14 @@ export default function AdminDashboardPage() {
           <SummaryCard label="Available Spaces" value={totals.capacity - totals.occupied} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className={`grid gap-6 ${showForm ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" : ""}`}>
           <Card>
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-500">Buildings</p>
                 <h2 className="mt-2 text-xl font-semibold text-slate-900">Manage inventory</h2>
               </div>
-              <Button variant="secondary" onClick={startNewBuilding}>New</Button>
+              <Button variant="secondary" onClick={startNewBuilding}>New Building</Button>
             </div>
 
             {loading ? (
@@ -232,49 +250,54 @@ export default function AdminDashboardPage() {
             )}
           </Card>
 
-          <Card>
-            <div>
-              <p className="text-sm font-semibold text-slate-500">{selectedBuildingId ? "Editing building" : "Create a new building"}</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-900">
-                {selectedBuildingId ? "Building details" : "New building"}
-              </h2>
-            </div>
+          {showForm ? (
+            <div ref={buildingFormRef} className="transition duration-300">
+              <Card className="transition duration-300">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-500">{selectedBuildingId ? "Editing building" : "Create a new building"}</p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900">
+                      {selectedBuildingId ? "Building details" : "New building"}
+                    </h2>
+                  </div>
+                  <Button variant="ghost" onClick={closeForm} className="text-slate-600 hover:text-slate-900">Cancel</Button>
+                </div>
 
-            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  id="buildingName"
-                  label="Building Name"
-                  value={draft.name}
-                  onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                  required
-                />
-                <Input
-                  id="city"
-                  label="City"
-                  value={draft.city}
-                  onChange={(event) => setDraft((current) => ({ ...current, city: event.target.value }))}
-                  required
-                />
-              </div>
+                <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Input
+                      id="buildingName"
+                      label="Building Name"
+                      value={draft.name}
+                      onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                      required
+                    />
+                    <Input
+                      id="city"
+                      label="City"
+                      value={draft.city}
+                      onChange={(event) => setDraft((current) => ({ ...current, city: event.target.value }))}
+                      required
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <label htmlFor="buildingStatus" className="text-sm font-semibold text-slate-800">Status</label>
-                <select
-                  id="buildingStatus"
-                  value={draft.status}
-                  onChange={(event) => setDraft((current) => ({
-                    ...current,
-                    status: event.target.value as BuildingInput["status"],
-                  }))}
-                  className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="Open">Open</option>
-                  <option value="Closed">Closed</option>
-                </select>
-              </div>
+                  <div className="space-y-2">
+                    <label htmlFor="buildingStatus" className="text-sm font-semibold text-slate-800">Status</label>
+                    <select
+                      id="buildingStatus"
+                      value={draft.status}
+                      onChange={(event) => setDraft((current) => ({
+                        ...current,
+                        status: event.target.value as BuildingInput["status"],
+                      }))}
+                      className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                    >
+                      <option value="Open">Open</option>
+                      <option value="Closed">Closed</option>
+                    </select>
+                  </div>
 
-              <fieldset className="space-y-3">
+                  <fieldset className="space-y-3">
                 <legend className="text-sm font-semibold text-slate-800">Parking Areas</legend>
                 {parkingAreaKeys.map((area) => {
                   const parking = draft.parking[area];
@@ -309,16 +332,22 @@ export default function AdminDashboardPage() {
               {error && <p className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700" role="alert">{error}</p>}
               {success && <p className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700">{success}</p>}
 
-              <Button fullWidth type="submit" disabled={saving}>
-                {saving ? "Saving..." : selectedBuildingId ? "Save Building" : "Create Building"}
-              </Button>
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <Button type="button" variant="secondary" onClick={closeForm} className="w-full sm:w-auto">Cancel</Button>
+                <Button fullWidth type="submit" disabled={saving} className="w-full sm:w-auto">
+                  {saving ? "Saving..." : selectedBuildingId ? "Save Building" : "Create Building"}
+                </Button>
+              </div>
             </form>
           </Card>
         </div>
+          ) : null}
+        </div>
 
-        <UserManagementPanel buildings={buildings} />
-
-        <AdminAnalyticsPanel />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <UserManagementPanel buildings={buildings.map((building) => ({ id: building.id, name: building.name }))} />
+          <AdminAnalyticsPanel />
+        </div>
       </div>
     </PageContainer>
   );

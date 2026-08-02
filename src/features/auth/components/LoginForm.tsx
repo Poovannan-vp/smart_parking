@@ -66,7 +66,7 @@ export default function LoginForm() {
           required
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+        <div className="flex items-center gap-3 text-sm text-slate-600">
           <label className="inline-flex items-center gap-2">
             <input
               type="checkbox"
@@ -76,9 +76,6 @@ export default function LoginForm() {
             />
             Remember me
           </label>
-          <button type="button" className="text-slate-500 hover:text-slate-700" onClick={(event) => event.preventDefault()}>
-            Forgot password?
-          </button>
         </div>
 
         {error && (

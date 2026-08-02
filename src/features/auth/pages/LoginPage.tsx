@@ -1,50 +1,53 @@
-import LoginForm from "../components/LoginForm";
 import { useNavigate } from "react-router-dom";
+import LoginForm from "../components/LoginForm";
 
 import Button from "../../../shared/components/Button";
+import Card from "../../../shared/components/Card";
+import Logo from "../../../shared/components/Logo";
 import PageContainer from "../../../shared/components/PageContainer";
 
 export default function LoginPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <PageContainer>
         <div className="grid min-h-[calc(100vh-80px)] gap-8 lg:grid-cols-[520px_minmax(0,1fr)] lg:items-center">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-800 p-10 shadow-2xl shadow-slate-950/30">
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-700 to-transparent opacity-40" />
-            <div className="relative space-y-8">
+          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-10 shadow-sm shadow-slate-200/60">
+            <div className="space-y-8">
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full bg-slate-800/70 px-4 py-2 text-xs uppercase tracking-[0.28em] text-slate-300">
-                  <span>Smart Parking</span>
-                </div>
-                <h1 className="text-4xl font-semibold tracking-tight text-white">Enterprise parking management</h1>
-                <p className="max-w-md text-base leading-7 text-slate-300">
-                  Secure login for employees, security staff, administrators, and developers. Access role-based dashboards and live parking operations.
+                <Logo className="h-10" hideText={false} />
+                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Company parking access portal</h1>
+                <p className="max-w-md text-base leading-7 text-slate-600">
+                  Log in with your company credentials to access parking status, vehicle registration, and role-specific dashboards.
                 </p>
               </div>
 
-              <div className="grid gap-4">
-                <div className="rounded-3xl bg-white/5 p-5">
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Live access</p>
-                  <p className="mt-3 text-lg font-semibold text-white">Fast workflows for every role</p>
-                </div>
-                <div className="rounded-3xl bg-white/5 p-5">
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Secure data</p>
-                  <p className="mt-3 text-lg font-semibold text-white">Parking analytics protected</p>
-                </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Card className="bg-slate-50 p-5 shadow-sm shadow-slate-200/60">
+                  <p className="text-sm uppercase tracking-[0.24em] text-slate-500">App access</p>
+                  <p className="mt-3 text-lg font-semibold text-slate-900">Login for staff and administrators</p>
+                </Card>
+                <Card className="bg-slate-50 p-5 shadow-sm shadow-slate-200/60">
+                  <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Operational view</p>
+                  <p className="mt-3 text-lg font-semibold text-slate-900">Live parking occupancy and branch status</p>
+                </Card>
               </div>
             </div>
-            <div className="pointer-events-none absolute -right-16 top-12 h-52 w-52 rounded-full bg-cyan-500/20 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-16 left-10 h-60 w-60 rounded-full bg-sky-500/20 blur-3xl" />
           </div>
 
           <div className="flex items-center justify-center">
             <div className="w-full max-w-md">
-              <div className="mb-6 flex justify-between">
-                <Button variant="ghost" onClick={() => navigate("/")}>Back to Home</Button>
-              </div>
-              <LoginForm />
+              <Card>
+                <div className="mb-6 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Staff login</p>
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Secure access portal</p>
+                  </div>
+                  <Button variant="ghost" className="text-slate-700 hover:text-slate-900" onClick={() => navigate("/")}>Back</Button>
+                </div>
+                <LoginForm />
+              </Card>
             </div>
           </div>
         </div>

@@ -14,10 +14,13 @@ export default function Card({
   return (
     <div
       className={`
-        rounded-3xl
+        rounded-[1.75rem]
         bg-white
         p-6
-        ${flat ? "border border-slate-200" : "shadow-sm border border-slate-200"}
+        sm:p-8
+        border
+        border-slate-200
+        ${flat ? "" : "shadow-sm shadow-slate-200/60"}
         ${className}
       `}
     >

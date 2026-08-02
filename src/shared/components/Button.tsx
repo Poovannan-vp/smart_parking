@@ -1,19 +1,25 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type {
+  ComponentPropsWithoutRef,
+  ElementType,
+  ReactNode,
+} from "react";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+type ButtonProps<T extends ElementType = "button"> = {
+  as?: T;
   children: ReactNode;
   variant?: ButtonVariant;
   fullWidth?: boolean;
-}
+  className?: string;
+} & Omit<ComponentPropsWithoutRef<T>, "className" | "children">;
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-slate-900 text-white shadow-sm shadow-slate-900/10 hover:bg-slate-800 focus:ring-slate-900",
+    "bg-sky-950 text-white shadow-sm shadow-sky-950/10 hover:bg-sky-900 focus:ring-sky-500",
 
   secondary:
-    "bg-white text-slate-900 border border-slate-200 shadow-sm hover:bg-slate-50 focus:ring-slate-500",
+    "bg-white text-slate-900 border border-slate-200 shadow-sm hover:bg-slate-50 focus:ring-sky-500",
 
   danger:
     "bg-rose-600 text-white shadow-sm shadow-rose-600/20 hover:bg-rose-700 focus:ring-rose-500",
@@ -22,18 +28,19 @@ const variantClasses: Record<ButtonVariant, string> = {
     "bg-transparent text-slate-700 hover:bg-slate-100 focus:ring-slate-400",
 };
 
-export default function Button({
+export default function Button<T extends ElementType = "button">({
+  as,
   children,
   variant = "primary",
   fullWidth = false,
   className = "",
-  disabled,
   ...props
-}: ButtonProps) {
+}: ButtonProps<T>) {
+  const Component = as || "button";
+
   return (
-    <button
+    <Component
       {...props}
-      disabled={disabled}
       className={`
         inline-flex
         items-center
@@ -56,6 +63,6 @@ export default function Button({
       `}
     >
       {children}
-    </button>
+    </Component>
   );
 }

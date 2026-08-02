@@ -8,6 +8,7 @@ import DashboardLayout from "../shared/layouts/DashboardLayout";
 
 import HomePage from "../features/home/pages/HomePage";
 import LoginPage from "../features/auth/pages/LoginPage";
+import SignUpPage from "../features/auth/pages/SignUpPage";
 import RequireRole from "../features/auth/components/RequireRole";
 
 import EmployeeDashboardPage from "../features/employee/pages/EmployeeDashboardPage";
@@ -35,6 +36,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.LOGIN,
         element: <LoginPage />,
+      },
+      {
+        path: ROUTES.SIGNUP,
+        element: <SignUpPage />,
       },
     ],
   },

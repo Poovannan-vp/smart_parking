@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import Button from "../../../shared/components/Button";
 import Input from "../../../shared/components/Input";
 import {
   createManagedUser,
+  deleteManagedUser,
   getManagedUsers,
   sendManagedUserPasswordReset,
   setManagedUserActive,
@@ -34,6 +35,8 @@ export default function UserManagementPanel({ buildings }: { buildings: Building
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const [showAllUsers, setShowAllUsers] = useState(false);
+  const editFormRef = useRef<HTMLDivElement | null>(null);
 
   async function loadUsers() {
     setLoading(true);
@@ -50,6 +53,14 @@ export default function UserManagementPanel({ buildings }: { buildings: Building
   useEffect(() => {
     void loadUsers();
   }, []);
+
+  useEffect(() => {
+    if (editingUser && editFormRef.current) {
+      editFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [editingUser]);
+
+  const visibleUsers = showAllUsers ? users : users.slice(0, 4);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -104,6 +115,23 @@ export default function UserManagementPanel({ buildings }: { buildings: Building
     }
   }
 
+  async function deleteUser(userId: string) {
+    setError(null);
+    setSuccess(null);
+
+    if (!window.confirm("Delete this user permanently?")) {
+      return;
+    }
+
+    try {
+      await deleteManagedUser(userId);
+      await loadUsers();
+      setSuccess("User deleted successfully.");
+    } catch {
+      setError("Unable to delete user.");
+    }
+  }
+
   async function resetPassword(email: string) {
     try {
       await sendManagedUserPasswordReset(email);
@@ -147,24 +175,38 @@ export default function UserManagementPanel({ buildings }: { buildings: Building
         {success && <p className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">{success}</p>}
 
         {loading ? <p className="mt-4 text-sm text-slate-500">Loading users...</p> : (
-          <ul className="mt-4 space-y-3">
-            {users.map((user) => (
-              <li key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
-                <div>
-                  <p className="font-medium text-slate-800">{user.firstName} {user.lastName}</p>
-                  <p className="text-sm text-slate-500">{user.email} · {user.role}</p>
-                </div>
-                <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => setEditingUser({ ...user })}>Edit</Button><Button variant="secondary" onClick={() => void resetPassword(user.email)}>Reset Password</Button><Button variant={user.active ? "danger" : "secondary"} onClick={() => void toggleUser(user)}>{user.active ? "Deactivate" : "Activate"}</Button></div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="mt-4 text-sm text-slate-500">Showing {visibleUsers.length}{users.length > 4 ? ` of ${users.length} users` : " user(s)"}.</p>
+            <ul className="mt-4 space-y-3">
+              {visibleUsers.map((user) => (
+                <li key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
+                  <div>
+                    <p className="font-medium text-slate-800">{user.firstName} {user.lastName}</p>
+                    <p className="text-sm text-slate-500">{user.email} · {user.role}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" onClick={() => setEditingUser({ ...user })}>Edit</Button>
+                    <Button variant="secondary" onClick={() => void resetPassword(user.email)}>Reset Password</Button>
+                    <Button variant={user.active ? "danger" : "secondary"} onClick={() => void toggleUser(user)}>{user.active ? "Deactivate" : "Activate"}</Button>
+                    <Button variant="danger" onClick={() => void deleteUser(user.id)}>Delete</Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {users.length > 4 ? (
+              <div className="mt-4 flex justify-center">
+                <Button variant="secondary" onClick={() => setShowAllUsers((current) => !current)}>
+                  {showAllUsers ? "Show fewer users" : "View all users"}
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
       {editingUser && <form className="space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-5 lg:col-span-2" onSubmit={saveUserEdit}><div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Edit {editingUser.email}</h2><Button type="button" variant="secondary" onClick={() => setEditingUser(null)}>Cancel</Button></div><div className="grid gap-3 sm:grid-cols-2"><Input id="editEmployeeId" label="Employee ID" value={editingUser.employeeId} onChange={(event) => setEditingUser((current) => current && ({ ...current, employeeId: event.target.value }))} /><Input id="editFirstName" label="First Name" value={editingUser.firstName} onChange={(event) => setEditingUser((current) => current && ({ ...current, firstName: event.target.value }))} /><Input id="editLastName" label="Last Name" value={editingUser.lastName} onChange={(event) => setEditingUser((current) => current && ({ ...current, lastName: event.target.value }))} /></div><SelectField label="Role" id="editRole" value={editingUser.role} onChange={(value) => setEditingUser((current) => current && ({ ...current, role: value as UserRole }))}>{roles.map((role) => <option key={role} value={role}>{role}</option>)}</SelectField><SelectField label="Assigned Building" id="editBuilding" value={editingUser.buildingId} onChange={(value) => setEditingUser((current) => current && ({ ...current, buildingId: value }))}><option value="">No building assigned</option>{buildings.map((building) => <option key={building.id} value={building.id}>{building.name}</option>)}</SelectField><Button type="submit">Save User</Button></form>}
     </section>
   );
 }
-
 function SelectField({
   label,
   id,

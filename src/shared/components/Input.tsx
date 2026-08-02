@@ -37,9 +37,9 @@ export default function Input({
           outline-none
           transition
           duration-200
-          focus:border-slate-900
+          focus:border-sky-900
           focus:ring-2
-          focus:ring-slate-200
+          focus:ring-sky-200
           disabled:bg-slate-100
           ${className}
         `}
