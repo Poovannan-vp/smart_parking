@@ -14,17 +14,17 @@ export default function Card({
   return (
     <div
       className={`
-        rounded-[1.75rem]
+        rounded-2xl
         bg-white
         p-6
-        sm:p-8
+        sm:p-7
         border
-        border-slate-200
-        ${flat ? "" : "shadow-sm shadow-slate-200/60"}
+        border-slate-200/80
+        ${flat ? "" : "shadow-sm shadow-slate-200/50"}
         ${className}
-      `}
+      `.trim()}
     >
       {children}
     </div>
   );
-}
+}

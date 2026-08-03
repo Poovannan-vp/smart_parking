@@ -10,15 +10,17 @@ import {
   HiUserPlus,
   HiUsers,
   HiCog,
+  HiXMark,
 } from "react-icons/hi2";
 
 import { ROUTES } from "../../app/routes";
 import useAuth from "../../features/auth/hooks/useAuth";
 import Header from "../components/Header";
+import Logo from "../components/Logo";
 
 const navItems = [
-  { label: "Employee", path: ROUTES.EMPLOYEE, icon: HiHome, roles: ["EMPLOYEE", "DEVELOPER"] },
-  { label: "Security", path: ROUTES.SECURITY, icon: HiShieldCheck, roles: ["SECURITY", "DEVELOPER"] },
+  { label: "Employee Portal", path: ROUTES.EMPLOYEE, icon: HiHome, roles: ["EMPLOYEE", "DEVELOPER"] },
+  { label: "Security Portal", path: ROUTES.SECURITY, icon: HiShieldCheck, roles: ["SECURITY", "DEVELOPER"] },
   { label: "Admin Dashboard", path: ROUTES.ADMIN, icon: HiUsers, roles: ["ADMIN", "DEVELOPER"] },
   { label: "Buildings", path: ROUTES.BUILDINGS, icon: HiBuildingOffice2, roles: ["ADMIN", "DEVELOPER"] },
   { label: "Vehicle Logs", path: ROUTES.VEHICLE_LOGS, icon: HiSparkles, roles: ["SECURITY", "DEVELOPER"] },
@@ -52,6 +54,7 @@ export default function DashboardLayout() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Header
+        variant="authenticated"
         userName={userName}
         userRole={userRole}
         onToggleSidebar={() => setSidebarOpen((current) => !current)}
@@ -60,27 +63,21 @@ export default function DashboardLayout() {
 
       <div className="relative">
         <div className={`fixed inset-0 z-50 transition-opacity duration-300 ${sidebarOpen ? "visible opacity-100" : "invisible opacity-0"}`}>
-          <div className="absolute inset-0 bg-slate-950/60" onClick={() => setSidebarOpen(false)} />
-          <aside className={`absolute left-0 top-0 z-50 h-full w-[320px] overflow-y-auto border-r border-slate-200 bg-white p-6 shadow-2xl transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <img src="/images/T-logo.svg" alt="Temenos logo" className="h-10 w-auto" />
-                <div>
-                  <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Navigation</p>
-                  <p className="text-base font-semibold text-slate-900">Smart Parking</p>
-                </div>
-              </div>
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" onClick={() => setSidebarOpen(false)} />
+          <aside className={`absolute left-0 top-0 z-50 h-full w-[300px] overflow-y-auto border-r border-slate-200 bg-white p-6 shadow-2xl transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-5">
+              <Logo hideText={false} />
               <button
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
                 onClick={() => setSidebarOpen(false)}
                 aria-label="Close navigation"
               >
-                ×
+                <HiXMark className="h-5 w-5" />
               </button>
             </div>
 
-            <nav className="mt-8 space-y-2">
+            <nav className="mt-6 space-y-1.5">
               {availableNav.map((item) => {
                 const Icon = item.icon;
                 const active = location.pathname === item.path;
@@ -90,37 +87,37 @@ export default function DashboardLayout() {
                     key={item.path}
                     to={item.path}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-semibold transition ${
-                      active ? "bg-slate-900 text-white shadow-sm shadow-slate-900/10" : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
+                      active ? "bg-[#0F2042] text-white shadow-sm shadow-[#0F2042]/20" : "text-slate-700 hover:bg-slate-100/80 hover:text-[#0F2042]"
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className={`h-5 w-5 ${active ? "text-[#00A3E0]" : "text-slate-500"}`} />
                     {item.label}
                   </Link>
                 );
               })}
 
               {showUsersMenu ? (
-                <div className="rounded-3xl border border-slate-200 bg-slate-50">
+                <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setUsersMenuOpen((current) => !current)}
                     aria-expanded={usersMenuOpen}
-                    className={`flex w-full items-center justify-between gap-3 rounded-3xl px-4 py-3 text-left text-sm font-semibold transition ${
-                      usersSectionActive ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                    className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-semibold transition ${
+                      usersSectionActive ? "bg-[#0F2042] text-white" : "text-slate-700 hover:bg-slate-100 hover:text-[#0F2042]"
                     }`}
                   >
                     <span className="inline-flex items-center gap-3">
-                      <HiUsers className="h-5 w-5" />
-                      Users
+                      <HiUsers className={`h-5 w-5 ${usersSectionActive ? "text-[#00A3E0]" : "text-slate-500"}`} />
+                      User Management
                     </span>
-                    <span className={`inline-flex h-5 w-5 items-center justify-center text-slate-500 transition-transform duration-200 ${usersMenuOpen ? "rotate-180" : "rotate-0"}`}>
+                    <span className={`inline-flex h-5 w-5 items-center justify-center transition-transform duration-200 ${usersMenuOpen ? "rotate-180" : "rotate-0"}`}>
                       <HiChevronDown className="h-4 w-4" />
                     </span>
                   </button>
 
                   <div className={`overflow-hidden transition-all duration-200 ${usersMenuOpen ? "max-h-40" : "max-h-0"}`}>
-                    <div className="space-y-1 px-2 pb-3 pt-2">
+                    <div className="space-y-1 p-2 bg-white border-t border-slate-100">
                       {usersSubNav.map((item) => {
                         const active = location.pathname === item.path;
 
@@ -129,11 +126,11 @@ export default function DashboardLayout() {
                             key={item.path}
                             to={item.path}
                             onClick={() => setSidebarOpen(false)}
-                            className={`flex items-center gap-3 rounded-3xl px-4 py-2 text-sm transition ${
-                              active ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                            } ${usersMenuOpen ? "pl-8" : "pl-4"}`}
+                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                              active ? "bg-[#00A3E0]/15 text-[#0F2042] font-semibold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                            }`}
                           >
-                            <item.icon className="h-4 w-4" />
+                            <item.icon className="h-4 w-4 text-slate-400" />
                             {item.label}
                           </Link>
                         );
@@ -146,7 +143,7 @@ export default function DashboardLayout() {
           </aside>
         </div>
 
-        <div className="mx-auto max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <main className="space-y-6">
             <Outlet />
           </main>
@@ -155,3 +152,4 @@ export default function DashboardLayout() {
     </div>
   );
 }
+

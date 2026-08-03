@@ -46,8 +46,8 @@ export default function SecurityDashboardPage() {
         if (data.length > 0) {
           setSelectedBuilding(data[0].id);
         }
-      } catch (error) {
-        console.error("Failed to load buildings", error);
+      } catch (err) {
+        console.error("Failed to load buildings", err);
         setBuildingError("Unable to load buildings.");
       }
     }
@@ -106,46 +106,51 @@ export default function SecurityDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto max-w-6xl space-y-8 py-8">
+      <div className="mx-auto max-w-6xl space-y-8 py-4">
         <PageHeader
-          title="Security Dashboard"
-          subtitle="Manage live parking occupancy and vehicle access for your assigned building."
+          title="Security Operations Dashboard"
+          subtitle="Real-time gate management, parking occupancy controls, and vehicle access for your office."
         />
 
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          <Card>
-            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Total capacity</p>
-            <p className="mt-4 text-3xl font-semibold text-slate-900">{totalCapacity}</p>
-          </Card>
-          <Card>
-            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Occupied</p>
-            <p className="mt-4 text-3xl font-semibold text-slate-900">{totalOccupied}</p>
-          </Card>
-          <Card>
-            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Available slots</p>
-            <p className="mt-4 text-3xl font-semibold text-slate-900">{totalAvailable}</p>
-            <p className="mt-2 text-sm text-slate-500">{utilization}% utilized</p>
-          </Card>
+        {/* Summary Metrics */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Total Capacity</span>
+            <p className="mt-2 text-3xl font-bold text-[#0F2042]">{totalCapacity}</p>
+            <p className="mt-1 text-xs text-slate-500">Configured slots</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Available</span>
+            <p className="mt-2 text-3xl font-bold text-emerald-600">{totalAvailable}</p>
+            <p className="mt-1 text-xs text-slate-500">Free parking slots</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-rose-500">Occupied</span>
+            <p className="mt-2 text-3xl font-bold text-rose-600">{totalOccupied}</p>
+            <p className="mt-1 text-xs text-slate-500">{utilization}% utilization</p>
+          </div>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
-            <Card className="space-y-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <Card>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Security controls</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Update parking occupancy and access the vehicle log.
+                  <h2 className="text-base font-bold text-[#0F2042]">Live Occupancy Counters</h2>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Increment or decrement parking counters as vehicles enter or exit.
                   </p>
                 </div>
-                <Button variant="secondary" onClick={() => navigate(ROUTES.VEHICLE_LOGS)}>Vehicle Log</Button>
+                <Button variant="teal" onClick={() => navigate(ROUTES.VEHICLE_LOGS)}>
+                  Manage Gate Vehicle Log
+                </Button>
               </div>
 
               {isDeveloper ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <span>Developer mode</span>
-                    <StatusBadge variant="info">All buildings</StatusBadge>
+                <div className="mt-4 p-4 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-semibold text-amber-900">
+                    <span>Developer Override</span>
+                    <StatusBadge variant="info">All Buildings Access</StatusBadge>
                   </div>
                   <BuildingSelector
                     buildings={buildings}
@@ -153,43 +158,39 @@ export default function SecurityDashboardPage() {
                     onChange={setSelectedBuilding}
                   />
                 </div>
-              ) : (
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  Updates are restricted to your assigned building.
-                </div>
-              )}
-            </Card>
+              ) : null}
 
-            <Card>
-              <ParkingCounterList
-                parking={parking}
-                onIncrease={increase}
-                onDecrease={decrease}
-                isUpdating={isUpdating}
-              />
-            </Card>
-
-            {error ? (
-              <div className="rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700" role="alert">
-                {error}
+              <div className="mt-6">
+                <ParkingCounterList
+                  parking={parking}
+                  onIncrease={increase}
+                  onDecrease={decrease}
+                  isUpdating={isUpdating}
+                />
               </div>
-            ) : null}
+
+              {error ? (
+                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-700" role="alert">
+                  {error}
+                </div>
+              ) : null}
+            </Card>
           </div>
 
           <div className="space-y-6">
             <Card>
-              <h2 className="text-lg font-semibold text-slate-900">Quick notes</h2>
-              <p className="mt-3 text-sm text-slate-600">
-                Changes are saved immediately and reflected on the home page and employee availability reports.
+              <h2 className="text-base font-bold text-[#0F2042]">Live Operations</h2>
+              <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                Occupancy adjustments are saved immediately and updated live on the public landing page and employee dashboards.
               </p>
             </Card>
             <Card>
               <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-700">Action guidance</p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li>• Update only the assigned building unless you are a developer.</li>
-                  <li>• Use the vehicle log page for exit and correction actions.</li>
-                  <li>• Keep occupancy within capacity limits.</li>
+                <p className="text-sm font-bold text-[#0F2042]">Operational Rules</p>
+                <ul className="space-y-2 text-xs text-slate-600">
+                  <li className="flex items-start gap-1.5">• Counters enforce strict capacity limits.</li>
+                  <li className="flex items-start gap-1.5">• Use the Gate Vehicle Log page to log vehicle license plates.</li>
+                  <li className="flex items-start gap-1.5">• Audit corrections require a recorded reason for system compliance.</li>
                 </ul>
               </div>
             </Card>
@@ -199,3 +200,4 @@ export default function SecurityDashboardPage() {
     </PageContainer>
   );
 }
+

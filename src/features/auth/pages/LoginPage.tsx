@@ -4,54 +4,60 @@ import LoginForm from "../components/LoginForm";
 import Button from "../../../shared/components/Button";
 import Card from "../../../shared/components/Card";
 import Logo from "../../../shared/components/Logo";
-import PageContainer from "../../../shared/components/PageContainer";
 
 export default function LoginPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <PageContainer>
-        <div className="grid min-h-[calc(100vh-80px)] gap-8 lg:grid-cols-[520px_minmax(0,1fr)] lg:items-center">
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-10 shadow-sm shadow-slate-200/60">
-            <div className="space-y-8">
-              <div className="space-y-3">
-                <Logo className="h-10" hideText={false} />
-                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Company parking access portal</h1>
-                <p className="max-w-md text-base leading-7 text-slate-600">
-                  Log in with your company credentials to access parking status, vehicle registration, and role-specific dashboards.
+    <div className="w-full max-w-5xl my-auto">
+      <div className="grid gap-8 lg:grid-cols-[1fr_420px] lg:items-center">
+        {/* Info Card */}
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-slate-200/80 bg-white p-8 sm:p-10 shadow-sm">
+            <div className="space-y-6">
+              <Logo hideText={false} />
+
+              <div>
+                <span className="text-xs font-bold uppercase tracking-[0.24em] text-[#00A3E0]">Internal Security Portal</span>
+                <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#0F2042] sm:text-4xl">
+                  Enterprise Parking Access
+                </h1>
+                <p className="mt-3 text-base leading-relaxed text-slate-600">
+                  Log in with your company credentials to access parking status, vehicle registration, and operational role dashboards.
                 </p>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Card className="bg-slate-50 p-5 shadow-sm shadow-slate-200/60">
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-500">App access</p>
-                  <p className="mt-3 text-lg font-semibold text-slate-900">Login for staff and administrators</p>
-                </Card>
-                <Card className="bg-slate-50 p-5 shadow-sm shadow-slate-200/60">
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Operational view</p>
-                  <p className="mt-3 text-lg font-semibold text-slate-900">Live parking occupancy and branch status</p>
-                </Card>
+              <div className="grid gap-4 sm:grid-cols-2 pt-2">
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-5">
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Role Access</span>
+                  <p className="mt-2 text-sm font-semibold text-[#0F2042]">Employees, Security & Administrators</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-5">
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Live Operations</span>
+                  <p className="mt-2 text-sm font-semibold text-[#0F2042]">Real-time branch occupancy & vehicle logs</p>
+                </div>
               </div>
             </div>
           </div>
-
-          <div className="flex items-center justify-center">
-            <div className="w-full max-w-md">
-              <Card>
-                <div className="mb-6 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700">Staff login</p>
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Secure access portal</p>
-                  </div>
-                  <Button variant="ghost" className="text-slate-700 hover:text-slate-900" onClick={() => navigate("/")}>Back</Button>
-                </div>
-                <LoginForm />
-              </Card>
-            </div>
-          </div>
         </div>
-      </PageContainer>
+
+        {/* Form Container */}
+        <div className="flex justify-center">
+          <Card className="w-full shadow-lg">
+            <div className="mb-6 flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <p className="text-base font-bold text-[#0F2042]">Staff Login</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#00A3E0]">Secure Authentication</p>
+              </div>
+              <Button variant="ghost" className="text-xs" onClick={() => navigate("/")}>
+                Back Home
+              </Button>
+            </div>
+            <LoginForm />
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
+

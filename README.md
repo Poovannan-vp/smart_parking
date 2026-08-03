@@ -145,6 +145,42 @@ The script creates or updates the profile for `BOOTSTRAP_ADMIN_UID`. See `.env.e
 | `npm run seed` | Seed example building data. |
 | `npm run bootstrap:users` | Create/update the initial Admin Auth user and profile. |
 
+## Design system and shared components
+
+The project follows a component-based design system located in `src/shared/components/`. All pages compose from these primitives to maintain visual consistency.
+
+### Core components
+
+| Component | Purpose |
+| --- | --- |
+| `Button` | Multi-variant button (`secondary`, `danger`). Renders `<button>` with consistent padding, radius, and hover states. |
+| `Card` | Container surface with rounded corners, border, and shadow. Accepts a `className` prop for additional padding/layout. |
+| `EmptyState` | Centered message with optional action button, used when a list is empty or a search has no results. |
+| `Header` | Full-width top navigation bar with role-based links, mobile drawer, logo, and user menu. |
+| `Input` | Labelled text input with id, placeholder, and controlled value. |
+| `LoadingSpinner` | Animated spinner for inline loading indicators. |
+| `LoadingState` | Full-section spinner with text, used during initial data fetches. |
+| `Logo` | The "ParkSmart" branded logo SVG used in the header. |
+| `PageContainer` | Max-width wrapper with horizontal padding for page content. |
+| `PageHeader` | Title, subtitle, and optional `actions` slot used at the top of every page. |
+| `StatusBadge` | Pill badge with variant colours (`success`, `danger`, `info`, `warning`). |
+| `LoadMoreButton` | Paginated "Load more" trigger rendered as a list item with a chevron icon, located in `src/components/`. |
+
+### Design tokens
+
+- **Border radius**: `rounded-3xl` for cards and badges, `rounded-full` for buttons and pills.
+- **Spacing**: Tailwind `space-y-*` and `gap-*` utilities; 8-unit vertical rhythm (`py-8`, `space-y-8`).
+- **Colour palette**: Slate neutrals with semantic accents — emerald (success), rose (danger/error), sky/blue (info), amber (warning).
+- **Typography**: System font stack via Tailwind defaults; `text-sm` for labels, `text-base`/`text-lg` for headings inside cards, `text-3xl` for metric numbers.
+
+### Patterns
+
+- **Load More pagination**: Used on `UsersPage` to show 4 items initially and load 4 more on click via `LoadMoreButton`.
+- **Scroll-into-view on edit**: `BuildingsPage` and `EmployeeDashboardPage` use `useRef` + `scrollIntoView({ behavior: "smooth", block: "start" })` inside a `setTimeout` to smoothly reveal inline edit forms.
+- **Confirmation dialogs**: Destructive actions (Delete user, void log) use `window.confirm()` before proceeding.
+- **Inline alerts**: Success/error feedback rendered as coloured `<p>` banners inside `Card` components with `role="alert"` for errors.
+- **useCallback + useEffect**: Data-loading functions that depend on reactive values (dates, IDs) are wrapped in `useCallback` and referenced in `useEffect` dependency arrays.
+
 ## Security notes
 
 - Publish `firestore.rules` before sharing the system beyond development.
@@ -154,4 +190,4 @@ The script creates or updates the profile for `BOOTSTRAP_ADMIN_UID`. See `.env.e
 
 ## Validation status
 
-The project production build and lint command complete successfully. ESLint currently reports a small number of React Hook dependency warnings that should be addressed during future cleanup.
+The project production build and lint command complete successfully with zero errors and zero warnings.

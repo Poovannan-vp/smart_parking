@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { HiTruck, HiUser, HiBuildingOffice, HiCheckCircle } from "react-icons/hi2";
 
 import useAuth from "../../auth/hooks/useAuth";
 import Button from "../../../shared/components/Button";
@@ -30,13 +31,13 @@ const areaLabels: Record<ParkingAreaKey, string> = {
 };
 
 function getSectionLabel(key: string) {
-  if (key.startsWith("open")) return "Open Parking";
-  if (key.startsWith("closed")) return "Closed Parking";
-  return "General Parking";
+  if (key.startsWith("open")) return "Open Parking Area";
+  if (key.startsWith("closed")) return "Closed / Covered Parking";
+  return "General Parking Area";
 }
 
 function getAreaLabel(key: string) {
-  return areaLabels[key] ?? key.replace(/([A-Z])/g, " $1").trim();
+  return areaLabels[key as ParkingAreaKey] ?? key.replace(/([A-Z])/g, " $1").trim();
 }
 
 export default function EmployeeDashboardPage() {
@@ -107,7 +108,7 @@ export default function EmployeeDashboardPage() {
     return (Object.entries(building.parking) as Array<[string, { capacity: number; occupied: number } | undefined]>)
       .filter(([, area]) => Boolean(area))
       .map(([key, area]) => ({
-        key,
+        key: key as ParkingAreaKey,
         section: getSectionLabel(key),
         label: getAreaLabel(key),
         capacity: area!.capacity,
@@ -117,6 +118,11 @@ export default function EmployeeDashboardPage() {
   }, [building]);
 
   const availableParkingAreas = parkingAreas.filter((area) => area.available > 0);
+
+  // Group parking areas by category (Car vs Bike vs General)
+  const carAreas = parkingAreas.filter((area) => area.key === "closedCar" || area.key === "openCar");
+  const bikeAreas = parkingAreas.filter((area) => area.key === "closedBike");
+  const generalAreas = parkingAreas.filter((area) => area.key === "general");
 
   async function handleAddVehicle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -196,214 +202,287 @@ export default function EmployeeDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto max-w-6xl space-y-8 py-8">
+      <div className="mx-auto max-w-6xl space-y-8 py-4">
         <PageHeader
-          title="Employee Dashboard"
-          subtitle="View your assigned office and manage parking in a clean, simple experience."
+          title="Employee Parking Portal"
+          subtitle="View real-time availability for your assigned Temenos office, book daily slots, and manage registered vehicles."
         />
 
         {error ? (
-          <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">{error}</div>
         ) : null}
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+          {/* Main Column */}
           <div className="space-y-6">
+            {/* Profile Section */}
             <Card>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-500">My Profile</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Employee"}</p>
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#00A3E0]/10 text-[#00A3E0]">
+                    <HiUser className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[#0F2042]">
+                      {[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Employee Profile"}
+                    </h2>
+                    <p className="text-xs text-slate-500">Corporate Parking Account</p>
+                  </div>
                 </div>
-                <div className="space-y-1 text-right">
-                  <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Role</p>
-                  <StatusBadge>{user?.role ?? "EMPLOYEE"}</StatusBadge>
-                </div>
+                <StatusBadge variant="info">{user?.role ?? "EMPLOYEE"}</StatusBadge>
               </div>
 
-              <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                <ProfileItem label="Employee ID" value={user?.employeeId || "Not set"} />
-                <ProfileItem label="Email" value={user?.email || "Not set"} />
-                <ProfileItem label="Assigned Office" value={user?.buildingId ? assignedOfficeName : "Not assigned"} />
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <ProfileItem label="Employee ID" value={user?.employeeId || "Not assigned"} />
+                <ProfileItem label="Email Address" value={user?.email || "Not set"} />
+                <ProfileItem label="Assigned Branch" value={user?.buildingId ? assignedOfficeName : "Not assigned"} />
               </div>
             </Card>
 
+            {/* Office Parking Availability */}
             <Card>
-              <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
                 <div>
-                  <p className="text-sm font-semibold text-slate-500">Office parking</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{assignedOfficeName}</p>
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Branch Overview</span>
+                  <h2 className="text-lg font-bold text-[#0F2042]">{assignedOfficeName}</h2>
                 </div>
                 {building ? (
-                  <StatusBadge variant={building.status === "Open" ? "success" : "danger"}>{building.status}</StatusBadge>
+                  <StatusBadge variant={building.status === "Open" ? "success" : "danger"}>
+                    {building.status === "Open" ? "Operational" : "Closed"}
+                  </StatusBadge>
                 ) : null}
               </div>
 
               {loading ? (
-                <div className="mt-6 text-sm text-slate-600">Loading assigned office availability...</div>
+                <div className="py-8 text-center text-sm text-slate-500">Loading assigned office availability...</div>
               ) : !user?.buildingId ? (
-                <div className="mt-6 rounded-3xl bg-slate-50 p-5 text-sm text-slate-600">Ask your administrator to assign your office to your account so you can view parking availability.</div>
+                <div className="mt-6 rounded-2xl border border-slate-200/80 bg-slate-50 p-6 text-center text-sm text-slate-600">
+                  <HiBuildingOffice className="mx-auto h-8 w-8 text-slate-400 mb-2" />
+                  Please ask your system administrator to assign an office to your user profile to view live parking availability.
+                </div>
               ) : !building ? (
-                <div className="mt-6 rounded-3xl bg-slate-50 p-5 text-sm text-slate-600">Assigned office details are not currently available.</div>
-              ) : parkingAreas.length === 0 ? (
-                <div className="mt-6 rounded-3xl bg-slate-50 p-5 text-sm text-slate-600">No parking data is available for this office.</div>
+                <div className="mt-6 rounded-2xl border border-slate-200/80 bg-slate-50 p-6 text-center text-sm text-slate-600">
+                  Assigned office details are currently unavailable.
+                </div>
               ) : (
-                <div className="mt-6 grid gap-4">
-                  {parkingAreas.map((area) => (
-                    <div key={area.key} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{area.label}</p>
-                          <p className="mt-1 text-sm text-slate-500">{area.section}</p>
-                        </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">
-                          {area.available} free
-                        </span>
+                <div className="mt-6 space-y-6">
+                  {/* Car Parking Category */}
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-[#00A3E0]"></span>
+                      Car Parking
+                    </h3>
+                    {carAreas.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {carAreas.map((area) => (
+                          <ParkingCategoryCard key={area.key} area={area} />
+                        ))}
                       </div>
-                      <div className="mt-4 grid gap-2 sm:grid-cols-3 text-sm text-slate-600">
-                        <div>Capacity: {area.capacity}</div>
-                        <div>Occupied: {area.occupied}</div>
-                        <div>Available: {area.available}</div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-500">
+                        Car parking information will be available once updated.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bike Parking Category */}
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                      Bike Parking
+                    </h3>
+                    {bikeAreas.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {bikeAreas.map((area) => (
+                          <ParkingCategoryCard key={area.key} area={area} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-500">
+                        Bike parking information will be available once updated.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* General Category if configured */}
+                  {generalAreas.length > 0 ? (
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">General Parking</h3>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {generalAreas.map((area) => (
+                          <ParkingCategoryCard key={area.key} area={area} />
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  ) : null}
                 </div>
               )}
             </Card>
           </div>
 
+          {/* Right Column (Booking & Vehicles) */}
           <div className="space-y-6">
+            {/* Book Parking Slot */}
             <Card>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-500">Book parking slot</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">Select your area and vehicle</p>
-                </div>
+              <div className="border-b border-slate-100 pb-4">
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Daily Access</span>
+                <h2 className="text-lg font-bold text-[#0F2042]">Book Parking Slot</h2>
               </div>
 
-              <form className="mt-6 space-y-4" onSubmit={handleBookParking}>
-                <div>
-                  <label htmlFor="parkingArea" className="text-sm font-medium text-slate-700">Parking area</label>
+              <form className="mt-5 space-y-4" onSubmit={handleBookParking}>
+                <div className="space-y-1.5">
+                  <label htmlFor="parkingArea" className="block text-sm font-semibold text-slate-800">
+                    Parking Area
+                  </label>
                   <select
                     id="parkingArea"
                     value={selectedParkingArea}
                     onChange={(event) => setSelectedParkingArea(event.target.value as ParkingAreaKey | "")}
-                    className="mt-2 h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-[#00A3E0] focus:ring-2 focus:ring-[#00A3E0]/20"
                   >
                     <option value="">Select an available area</option>
                     {availableParkingAreas.map((area) => (
-                      <option key={area.key} value={area.key}>{`${area.section} / ${area.label} — ${area.available} available`}</option>
+                      <option key={area.key} value={area.key}>
+                        {`${area.section} (${area.label}) — ${area.available} free`}
+                      </option>
                     ))}
                   </select>
                 </div>
 
-                <div>
-                  <label htmlFor="vehicleSelect" className="text-sm font-medium text-slate-700">Registered vehicle</label>
+                <div className="space-y-1.5">
+                  <label htmlFor="vehicleSelect" className="block text-sm font-semibold text-slate-800">
+                    Registered Vehicle
+                  </label>
                   <select
                     id="vehicleSelect"
                     value={selectedVehicleId}
                     onChange={(event) => setSelectedVehicleId(event.target.value)}
-                    className="mt-2 h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-[#00A3E0] focus:ring-2 focus:ring-[#00A3E0]/20"
                   >
                     <option value="">Select a vehicle</option>
                     {vehicles.map((vehicle) => (
-                      <option key={vehicle.id} value={vehicle.id}>{`${vehicle.registrationNumber} (${vehicle.vehicleType})`}</option>
+                      <option key={vehicle.id} value={vehicle.id}>
+                        {`${vehicle.registrationNumber} (${vehicle.vehicleType})`}
+                      </option>
                     ))}
                   </select>
                 </div>
 
-                <Button type="submit" fullWidth disabled={!building || availableParkingAreas.length === 0 || vehicles.length === 0}>Book parking slot</Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  disabled={!building || availableParkingAreas.length === 0 || vehicles.length === 0}
+                  className="py-3"
+                >
+                  Book Slot Now
+                </Button>
 
                 {bookingMessage ? (
-                  <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-700">{bookingMessage}</div>
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-medium text-emerald-800 flex items-center gap-2">
+                    <HiCheckCircle className="h-4 w-4 shrink-0 text-emerald-600" />
+                    {bookingMessage}
+                  </div>
                 ) : null}
               </form>
             </Card>
 
+            {/* Vehicle Management */}
             <Card>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-500">Registered vehicles</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">Add, edit, or remove your vehicles</p>
-                </div>
+              <div className="border-b border-slate-100 pb-4">
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Vehicle Management</span>
+                <h2 className="text-lg font-bold text-[#0F2042]">My Registered Vehicles</h2>
               </div>
 
-              <div ref={editFormRef}>
+              <div ref={editFormRef} className="mt-5">
                 {editingVehicle ? (
-                  <form className="mt-6 space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-5" onSubmit={handleSaveVehicle}>
-                    <p className="text-sm font-semibold text-slate-900">Edit vehicle</p>
+                  <form className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4" onSubmit={handleSaveVehicle}>
+                    <p className="text-sm font-bold text-[#0F2042]">Edit Vehicle Details</p>
                     <Input
                       id="editVehicleNumber"
-                      label="Vehicle Number"
+                      label="Vehicle Registration Number"
                       value={editingVehicle.registrationNumber}
                       onChange={(event) => setEditingVehicle({ ...editingVehicle, registrationNumber: event.target.value })}
                       required
                     />
-                    <label className="block">
-                      <span className="text-sm font-semibold text-slate-800">Vehicle Type</span>
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-semibold text-slate-800">Vehicle Type</label>
                       <select
                         value={editingVehicle.vehicleType}
                         onChange={(event) => setEditingVehicle({ ...editingVehicle, vehicleType: event.target.value as "CAR" | "BIKE" })}
-                        className="mt-2 h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-[#00A3E0] focus:ring-2 focus:ring-[#00A3E0]/20"
                       >
                         <option value="CAR">Car</option>
                         <option value="BIKE">Bike</option>
                       </select>
-                    </label>
-                    <div className="flex flex-wrap gap-3">
-                      <Button type="submit">Save changes</Button>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button type="submit" variant="primary" className="flex-1">Save Changes</Button>
                       <Button type="button" variant="secondary" onClick={() => setEditingVehicle(null)}>Cancel</Button>
                     </div>
                   </form>
                 ) : (
-                  <form className="mt-6 grid gap-4" onSubmit={handleAddVehicle}>
+                  <form className="space-y-4" onSubmit={handleAddVehicle}>
                     <Input
                       id="employeeVehicleNumber"
-                      label="Vehicle Number"
-                      placeholder="TN01AB1234"
+                      label="Vehicle Registration Number"
+                      placeholder="e.g. TN01AB1234"
                       value={vehicleNumber}
                       onChange={(event) => setVehicleNumber(event.target.value)}
                       required
                     />
-                    <label className="block">
-                      <span className="text-sm font-semibold text-slate-800">Vehicle Type</span>
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-semibold text-slate-800">Vehicle Type</label>
                       <select
                         value={vehicleType}
                         onChange={(event) => setVehicleType(event.target.value as "CAR" | "BIKE")}
-                        className="mt-2 h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-[#00A3E0] focus:ring-2 focus:ring-[#00A3E0]/20"
                       >
                         <option value="CAR">Car</option>
                         <option value="BIKE">Bike</option>
                       </select>
-                    </label>
-                    <Button type="submit" fullWidth>Add Vehicle</Button>
+                    </div>
+                    <Button type="submit" variant="secondary" fullWidth>Add New Vehicle</Button>
                   </form>
                 )}
               </div>
 
               {vehicleFormError ? (
-                <div className="mt-4 rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">{vehicleFormError}</div>
+                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                  {vehicleFormError}
+                </div>
               ) : null}
 
               <div className="mt-6 space-y-3">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Registered List</p>
                 {vehicles.length === 0 ? (
-                  <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">No vehicles registered yet.</div>
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-500">
+                    No vehicles registered yet. Add your vehicle above to book parking slots.
+                  </div>
                 ) : (
-                  <ul className="space-y-3">
+                  <div className="space-y-2.5">
                     {vehicles.map((vehicle) => (
-                      <li key={vehicle.id} className="rounded-3xl border border-slate-200 bg-white p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                          <div>
-                            <p className="font-semibold text-slate-900">{vehicle.registrationNumber}</p>
-                            <p className="text-sm text-slate-500">{vehicle.vehicleType}</p>
+                      <div key={vehicle.id} className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                            <HiTruck className="h-5 w-5" />
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            <Button variant="secondary" onClick={() => setEditingVehicle(vehicle)}>Edit</Button>
-                            <Button variant="danger" onClick={() => void handleRemoveVehicle(vehicle.id)}>Remove</Button>
+                          <div>
+                            <p className="text-sm font-bold text-[#0F2042]">{vehicle.registrationNumber}</p>
+                            <p className="text-xs font-medium text-slate-500">{vehicle.vehicleType}</p>
                           </div>
                         </div>
-                      </li>
+                        <div className="flex gap-1.5">
+                          <Button variant="ghost" className="text-xs px-2.5 py-1" onClick={() => setEditingVehicle(vehicle)}>
+                            Edit
+                          </Button>
+                          <Button variant="ghost" className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1" onClick={() => void handleRemoveVehicle(vehicle.id)}>
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </div>
             </Card>
@@ -416,11 +495,42 @@ export default function EmployeeDashboardPage() {
 
 function ProfileItem({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <dt className="text-sm text-slate-500">{label}</dt>
-      <dd className="mt-1 font-medium text-slate-800">{value}</dd>
+    <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+      <dt className="text-xs font-semibold text-slate-500">{label}</dt>
+      <dd className="mt-1 text-sm font-bold text-[#0F2042] truncate">{value}</dd>
     </div>
   );
 }
+
+function ParkingCategoryCard({ area }: { area: { key: ParkingAreaKey; section: string; label: string; capacity: number; occupied: number; available: number } }) {
+  return (
+    <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div>
+          <span className="text-sm font-bold text-[#0F2042]">{area.label}</span>
+          <p className="text-xs text-slate-500">{area.section}</p>
+        </div>
+        <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${area.available > 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
+          {area.available} free
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-slate-100">
+        <div>
+          <span className="text-slate-400">Total</span>
+          <p className="font-bold text-slate-800">{area.capacity}</p>
+        </div>
+        <div>
+          <span className="text-slate-400">Occupied</span>
+          <p className="font-bold text-slate-800">{area.occupied}</p>
+        </div>
+        <div>
+          <span className="text-slate-400">Available</span>
+          <p className="font-bold text-emerald-600">{area.available}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 

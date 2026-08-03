@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Button from "../../../shared/components/Button";
@@ -20,7 +20,7 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [logDate, setLogDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  async function loadDashboard() {
+  const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -39,11 +39,11 @@ export default function AdminDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [logDate]);
 
   useEffect(() => {
     void loadDashboard();
-  }, [logDate]);
+  }, [loadDashboard]);
 
   const openBuildings = buildings.filter((building) => building.status === "Open").length;
   const totalAvailable = analytics ? analytics.totalCapacity - analytics.totalOccupied : 0;

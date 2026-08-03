@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import Button from "../../../shared/components/Button";
 import { getAdminAnalytics, type AdminAnalytics } from "../../../services/analyticsService";
@@ -10,7 +10,7 @@ export default function AdminAnalyticsPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadAnalytics() {
+  const loadAnalytics = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -21,11 +21,11 @@ export default function AdminAnalyticsPanel() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [date]);
 
   useEffect(() => {
     void loadAnalytics();
-  }, [date]);
+  }, [loadAnalytics]);
 
   function exportCsv() {
     if (!analytics) return;

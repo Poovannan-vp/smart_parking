@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import BuildingSelector from "../../home/components/BuildingSelector";
@@ -101,7 +101,7 @@ export default function VehicleLogsPage() {
     );
   }, [activeBuildingId]);
 
-  async function loadLogs() {
+  const loadLogs = useCallback(async () => {
     if (!activeBuildingId) {
       setLogs([]);
       setLoading(false);
@@ -117,11 +117,11 @@ export default function VehicleLogsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [activeBuildingId, logDate]);
 
   useEffect(() => {
     void loadLogs();
-  }, [activeBuildingId, logDate]);
+  }, [loadLogs]);
 
   const filteredLogs = useMemo(() => {
     const normalizedSearch = normalizeVehicleNumber(search);

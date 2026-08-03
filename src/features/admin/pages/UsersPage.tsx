@@ -15,6 +15,7 @@ import {
   setManagedUserActive,
   type ManagedUser,
 } from "../../../services/userService";
+import LoadMoreButton from "../../../components/LoadMoreButton";
 import { ROUTES } from "../../../app/routes";
 
 export default function UsersPage() {
@@ -23,7 +24,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState<string>("");
+  const [displayedCount, setDisplayedCount] = useState<number>(4);
 
   async function loadUsers() {
     setLoading(true);
@@ -53,6 +55,8 @@ export default function UsersPage() {
         .includes(normalized),
     );
   }, [search, users]);
+
+  const displayedUsers = filteredUsers.slice(0, displayedCount);
 
   async function handleToggleActive(user: ManagedUser) {
     setError(null);
@@ -154,39 +158,41 @@ export default function UsersPage() {
               />
             ) : (
               <ul className="space-y-3">
-                {filteredUsers.map((user) => (
-                  <li key={user.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <p className="text-base font-semibold text-slate-900">{user.firstName} {user.lastName}</p>
-                        <p className="mt-1 text-sm text-slate-500">{user.email} · {user.employeeId || "No employee ID"}</p>
+                  {displayedUsers.map((user) => (
+                    <li key={user.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <p className="text-base font-semibold text-slate-900">{user.firstName} {user.lastName}</p>
+                          <p className="mt-1 text-sm text-slate-500">{user.email} · {user.employeeId || "No employee ID"}</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge variant={user.active ? "success" : "danger"}>{user.active ? "Active" : "Inactive"}</StatusBadge>
+                          <StatusBadge variant="info">{user.role}</StatusBadge>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge variant={user.active ? "success" : "danger"}>{user.active ? "Active" : "Inactive"}</StatusBadge>
-                        <StatusBadge variant="info">{user.role}</StatusBadge>
-                      </div>
-                    </div>
 
-                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
-                        <p className="font-semibold text-slate-900">Assigned building</p>
-                        <p className="mt-2">{user.buildingId || "None"}</p>
+                      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
+                          <p className="font-semibold text-slate-900">Assigned building</p>
+                          <p className="mt-2">{user.buildingId || "None"}</p>
+                        </div>
+                        <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
+                          <p className="font-semibold text-slate-900">User role</p>
+                          <p className="mt-2">{user.role}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="secondary" onClick={() => void handleResetPassword(user.email)}>Reset password</Button>
+                          <Button variant={user.active ? "danger" : "secondary"} onClick={() => void handleToggleActive(user)}>
+                            {user.active ? "Deactivate" : "Activate"}
+                          </Button>
+                          <Button variant="danger" onClick={() => void handleDelete(user.id)}>Delete</Button>
+                        </div>
                       </div>
-                      <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
-                        <p className="font-semibold text-slate-900">User role</p>
-                        <p className="mt-2">{user.role}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" onClick={() => void handleResetPassword(user.email)}>Reset password</Button>
-                        <Button variant={user.active ? "danger" : "secondary"} onClick={() => void handleToggleActive(user)}>
-                          {user.active ? "Deactivate" : "Activate"}
-                        </Button>
-                        <Button variant="danger" onClick={() => void handleDelete(user.id)}>Delete</Button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                  {displayedCount < filteredUsers.length && (
+                    <LoadMoreButton onClick={() => setDisplayedCount(prev => prev + 4)} />
+                  )}              </ul>
             )}
           </Card>
         </div>

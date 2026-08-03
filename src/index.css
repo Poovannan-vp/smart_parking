@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+@theme {
+  --color-temenos-navy: #0F2042;
+  --color-temenos-navy-dark: #0B192C;
+  --color-temenos-teal: #00A3E0;
+  --color-temenos-teal-dark: #0088BC;
+  --color-temenos-teal-light: #E0F2FE;
+  --color-temenos-bg: #F8FAFC;
+  --color-temenos-card: #FFFFFF;
+  --color-temenos-border: #E2E8F0;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-temenos-bg);
+    color: #0F172A;
+  }
+}
