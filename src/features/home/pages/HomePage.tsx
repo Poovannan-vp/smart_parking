@@ -134,7 +134,7 @@ export default function HomePage() {
       <div className="mx-auto max-w-7xl space-y-10 py-10">
         <header className="flex flex-col gap-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="inline-flex items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-white shadow-sm shadow-slate-900/10">
+            <div className="inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-white ">
               <Logo className="h-8" hideText={true} />
             </div>
           </div>
@@ -229,11 +229,11 @@ export default function HomePage() {
         </section>
 
         <footer className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p>Company Name | Smart Parking Access</p>
-            <p>© 2026 Company Name</p>
-          </div>
-        </footer>
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <p>Temenos | Smart Parking Access</p>
+    <p>© 2026 Temenos. Internal Use Only.</p>
+  </div>
+</footer>
       </div>
     </PageContainer>
   );

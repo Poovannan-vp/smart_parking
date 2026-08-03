@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../auth/hooks/useAuth";
+import { ROUTES } from "../../../app/routes";
 
 import PageContainer from "../../../shared/components/PageContainer";
 import Card from "../../../shared/components/Card";
@@ -137,7 +138,7 @@ export default function SecurityDashboardPage() {
                     Update parking occupancy and access the vehicle log.
                   </p>
                 </div>
-                <Button variant="secondary" onClick={() => navigate("/security/vehicle-logs")}>Vehicle Log</Button>
+                <Button variant="secondary" onClick={() => navigate(ROUTES.VEHICLE_LOGS)}>Vehicle Log</Button>
               </div>
 
               {isDeveloper ? (

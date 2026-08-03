@@ -11,6 +11,7 @@ import EmptyState from "../../../shared/components/EmptyState";
 import LoadingState from "../../../shared/components/LoadingState";
 import StatusBadge from "../../../shared/components/StatusBadge";
 import useAuth from "../../auth/hooks/useAuth";
+import { ROUTES } from "../../../app/routes";
 import {
   getBuildings,
   subscribeToBuilding,
@@ -221,7 +222,7 @@ export default function VehicleLogsPage() {
           title="Vehicle Logs"
           subtitle="Manage vehicle entries, exits, and audit corrections for your assigned building."
           actions={
-            <Button variant="secondary" onClick={() => navigate("/security")}>Back to Security</Button>
+            <Button variant="secondary" onClick={() => navigate(ROUTES.SECURITY)}>Back to Security</Button>
           }
         />
 
