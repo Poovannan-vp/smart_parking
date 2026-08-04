@@ -20,18 +20,19 @@ export default function DeveloperDashboardPage() {
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
 
   async function loadDiagnostics() {
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
 
-    try {
-      setDiagnostics(await getDeveloperDiagnostics());
-      setCheckedAt(new Date());
-    } catch {
-      setError("Unable to read Firestore diagnostics. Check the connection and access rules.");
-    } finally {
-      setLoading(false);
-    }
+  try {
+    setDiagnostics(await getDeveloperDiagnostics());
+    setCheckedAt(new Date());
+  } catch (diagnosticsError) {
+    console.error("Developer diagnostics error:", diagnosticsError);
+    setError("Unable to read Firestore diagnostics. Check the connection and access rules.");
+  } finally {
+    setLoading(false);
   }
+}
 
   useEffect(() => {
     void loadDiagnostics();
