@@ -1,6 +1,7 @@
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from "firebase/auth";
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   serverTimestamp,
@@ -74,6 +75,10 @@ export async function updateManagedUser(
     ...user,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function deleteManagedUser(userId: string) {
+  await deleteDoc(doc(db, "users", userId));
 }
 
 export async function sendManagedUserPasswordReset(email: string) {

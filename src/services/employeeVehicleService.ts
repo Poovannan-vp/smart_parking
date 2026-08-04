@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, query, serverTimestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 
 import { db } from "../config/firestore";
 import { normalizeVehicleNumber } from "./vehicleLogService";
@@ -14,4 +14,18 @@ export async function registerEmployeeVehicle(userId: string, registrationNumber
   const normalizedNumber = normalizeVehicleNumber(registrationNumber);
   if (normalizedNumber.length < 4) throw new Error("Enter a valid vehicle number.");
   await addDoc(collection(db, "employeeVehicles"), { userId, registrationNumber: normalizedNumber, vehicleType, createdAt: serverTimestamp() });
+}
+
+export async function updateEmployeeVehicle(vehicleId: string, registrationNumber: string, vehicleType: "CAR" | "BIKE") {
+  const normalizedNumber = normalizeVehicleNumber(registrationNumber);
+  if (normalizedNumber.length < 4) throw new Error("Enter a valid vehicle number.");
+  await updateDoc(doc(db, "employeeVehicles", vehicleId), {
+    registrationNumber: normalizedNumber,
+    vehicleType,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteEmployeeVehicle(vehicleId: string) {
+  await deleteDoc(doc(db, "employeeVehicles", vehicleId));
 }

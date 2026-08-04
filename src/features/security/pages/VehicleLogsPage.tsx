@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import BuildingSelector from "../../home/components/BuildingSelector";
 import Button from "../../../shared/components/Button";
+import Card from "../../../shared/components/Card";
 import Input from "../../../shared/components/Input";
 import PageContainer from "../../../shared/components/PageContainer";
+import PageHeader from "../../../shared/components/PageHeader";
+import EmptyState from "../../../shared/components/EmptyState";
+import LoadingState from "../../../shared/components/LoadingState";
+import StatusBadge from "../../../shared/components/StatusBadge";
 import useAuth from "../../auth/hooks/useAuth";
+import { ROUTES } from "../../../app/routes";
 import {
   getBuildings,
   subscribeToBuilding,
@@ -95,7 +101,7 @@ export default function VehicleLogsPage() {
     );
   }, [activeBuildingId]);
 
-  async function loadLogs() {
+  const loadLogs = useCallback(async () => {
     if (!activeBuildingId) {
       setLogs([]);
       setLoading(false);
@@ -111,11 +117,11 @@ export default function VehicleLogsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [activeBuildingId, logDate]);
 
   useEffect(() => {
     void loadLogs();
-  }, [activeBuildingId, logDate]);
+  }, [loadLogs]);
 
   const filteredLogs = useMemo(() => {
     const normalizedSearch = normalizeVehicleNumber(search);
@@ -211,56 +217,146 @@ export default function VehicleLogsPage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto max-w-3xl space-y-6 py-8">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Vehicle Log</h1>
-            {!isDeveloper && <p className="mt-1 text-sm text-slate-500">Assigned building: {activeBuildingName ?? "Loading..."}</p>}
-          </div>
-          <Button variant="secondary" onClick={() => navigate("/security")}>Back</Button>
+      <div className="mx-auto max-w-5xl space-y-8 py-8">
+        <PageHeader
+          title="Vehicle Logs"
+          subtitle="Manage vehicle entries, exits, and audit corrections for your assigned building."
+          actions={
+            <Button variant="secondary" onClick={() => navigate(ROUTES.SECURITY)}>Back to Security</Button>
+          }
+        />
+
+        {isDeveloper ? (
+          <Card className="space-y-4">
+            <p className="text-sm font-semibold text-slate-700">Developer building selector</p>
+            <BuildingSelector buildings={buildings} selectedBuilding={selectedBuilding} onChange={setSelectedBuilding} />
+          </Card>
+        ) : null}
+
+        {!isDeveloper && !activeBuildingId ? (
+          <EmptyState
+            title="No assigned building"
+            description="Your account has not been assigned to a building. Ask an Admin to assign one so you can manage vehicle logs."
+          />
+        ) : null}
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <Card>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-500">New Gate Entry</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-900">Log a vehicle</h2>
+              </div>
+              <div className="text-sm text-slate-500">{isDeveloper ? "Developer mode" : `Assigned building: ${activeBuildingName ?? "Loading..."}`}</div>
+            </div>
+
+            <form className="mt-6 space-y-4" onSubmit={handleCreate}>
+              <Input
+                id="vehicleNumber"
+                label="Vehicle Number"
+                placeholder="TN01AB1234"
+                value={vehicleNumber}
+                onChange={(event) => setVehicleNumber(event.target.value)}
+                onBlur={() => setVehicleNumber((value) => normalizeVehicleNumber(value))}
+                required
+              />
+              <ParkingAreaSelect id="parkingArea" label="Parking Area" value={parkingArea} areas={availableParkingAreas} onChange={setParkingArea} />
+              <Button fullWidth type="submit" disabled={saving || !activeBuildingId}>
+                {saving ? "Saving..." : "Log Vehicle"}
+              </Button>
+            </form>
+          </Card>
+
+          <Card>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-500">Vehicle History</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-900">Recent logs</h2>
+              </div>
+              <div className="space-y-2 text-sm text-slate-600">
+                <div>Selected building:</div>
+                <div className="font-medium text-slate-900">{activeBuildingName ?? "Loading..."}</div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+              <Input
+                id="vehicleSearch"
+                label="Search Vehicle Number"
+                placeholder="TN01AB1234"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+              <label className="block text-sm font-semibold text-slate-700">
+                Date
+                <input
+                  type="date"
+                  value={logDate}
+                  max={getVehicleLogDate()}
+                  onChange={(event) => setLogDate(event.target.value)}
+                  className="mt-2 h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+            </div>
+
+            {loading ? (
+              <LoadingState message="Loading vehicle history..." />
+            ) : filteredLogs.length === 0 ? (
+              <EmptyState title="No vehicle logs found" description="Try another date or search term." />
+            ) : (
+              <ul className="mt-6 space-y-4">
+                {filteredLogs.map((log) => (
+                  <li key={log.id} className="rounded-3xl border border-slate-200 p-4 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <p className="text-lg font-semibold text-slate-900">{log.vehicleNumber}</p>
+                        <p className="mt-1 text-sm text-slate-500">{log.parkingArea ? parkingAreaLabels[log.parkingArea] : "Parking area not selected"} · {formatLoggedAt(log.loggedAt)}</p>
+                      </div>
+                      <StatusBadge variant={log.status === "EXITED" ? "info" : log.status === "VOID" ? "warning" : "success"}>
+                        {log.status ?? "ACTIVE"}
+                      </StatusBadge>
+                    </div>
+
+                    {(log.status ?? "ACTIVE") === "ACTIVE" && (
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <Button variant="secondary" onClick={() => void handleExit(log)} disabled={saving}>Mark Exit</Button>
+                        <Button variant="secondary" onClick={() => beginEdit(log, "CORRECT")}>Correct</Button>
+                        <Button variant="danger" onClick={() => beginEdit(log, "VOID")}>Void</Button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </div>
 
-        {isDeveloper && <BuildingSelector buildings={buildings} selectedBuilding={selectedBuilding} onChange={setSelectedBuilding} />}
-        {!isDeveloper && !activeBuildingId && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">Your account has no assigned building. Ask an Admin to assign one.</p>}
+        {editingLog ? (
+          <form onSubmit={handleCorrection}>
+            <Card className="border-amber-200 bg-amber-50">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">{editAction === "VOID" ? "Void" : "Correct"} {editingLog.vehicleNumber}</h2>
+                <p className="mt-1 text-sm text-slate-600">A reason is required and saved in the audit trail.</p>
+              </div>
 
-        <form className="space-y-4 rounded-xl bg-white p-5 shadow" onSubmit={handleCreate}>
-          <h2 className="text-lg font-semibold">New Gate Entry</h2>
-          <Input id="vehicleNumber" label="Vehicle Number" placeholder="TN01AB1234" value={vehicleNumber} onChange={(event) => setVehicleNumber(event.target.value)} onBlur={() => setVehicleNumber((value) => normalizeVehicleNumber(value))} required />
-          <ParkingAreaSelect id="parkingArea" label="Parking Area" value={parkingArea} areas={availableParkingAreas} onChange={setParkingArea} />
-          <Button fullWidth type="submit" disabled={saving || !activeBuildingId}>{saving ? "Saving..." : "Log Vehicle"}</Button>
-        </form>
+              <div className="mt-5 space-y-4">
+                {editAction === "CORRECT" && (
+                  <ParkingAreaSelect id="correctedParkingArea" label="Corrected Parking Area" value={editParkingArea} areas={availableParkingAreas} onChange={setEditParkingArea} />
+                )}
+                <Input id="correctionReason" label="Reason" value={reason} onChange={(event) => setReason(event.target.value)} required />
+                <div className="flex flex-wrap gap-3">
+                  <Button type="submit" variant={editAction === "VOID" ? "danger" : "primary"} disabled={saving}>
+                    {saving ? "Saving..." : editAction === "VOID" ? "Void Log" : "Save Correction"}
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setEditingLog(null)}>Cancel</Button>
+                </div>
+              </div>
+            </Card>
+          </form>
+        ) : null}
 
-        <section className="rounded-xl bg-white p-5 shadow">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div><h2 className="text-lg font-semibold">Vehicle History</h2><p className="mt-1 text-sm text-slate-500">Search or select any date for this building.</p></div>
-            <label className="text-sm font-medium text-slate-700">Date<input type="date" value={logDate} max={getVehicleLogDate()} onChange={(event) => setLogDate(event.target.value)} className="ml-2 h-10 rounded-lg border border-slate-300 px-3 text-sm" /></label>
-          </div>
-          <div className="mt-4"><Input id="vehicleSearch" label="Search Vehicle Number" placeholder="TN01AB1234" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
-
-          {loading ? <p className="mt-4 text-sm text-slate-500">Loading vehicle log...</p> : filteredLogs.length === 0 ? <p className="mt-4 text-sm text-slate-500">No matching vehicle logs.</p> : (
-            <ul className="mt-4 space-y-3">
-              {filteredLogs.map((log) => (
-                <li key={log.id} className="rounded-lg border border-slate-200 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div><p className="font-semibold text-slate-800">{log.vehicleNumber}</p><p className="text-sm text-slate-500">{log.parkingArea ? parkingAreaLabels[log.parkingArea] : "Parking area not selected"} · {formatLoggedAt(log.loggedAt)}</p></div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${log.status === "VOID" ? "bg-slate-200 text-slate-700" : log.status === "EXITED" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>{log.status ?? "ACTIVE"}</span>
-                  </div>
-                  {(log.status ?? "ACTIVE") === "ACTIVE" && <div className="mt-3 flex flex-wrap gap-3"><Button variant="secondary" onClick={() => void handleExit(log)} disabled={saving}>Mark Exit</Button><Button variant="secondary" onClick={() => beginEdit(log, "CORRECT")}>Correct</Button><Button variant="danger" onClick={() => beginEdit(log, "VOID")}>Void</Button></div>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {editingLog && <form className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-5" onSubmit={handleCorrection}>
-          <div><h2 className="text-lg font-semibold">{editAction === "VOID" ? "Void" : "Correct"} {editingLog.vehicleNumber}</h2><p className="mt-1 text-sm text-slate-600">A reason is required and saved in the audit trail.</p></div>
-          {editAction === "CORRECT" && <ParkingAreaSelect id="correctedParkingArea" label="Corrected Parking Area" value={editParkingArea} areas={availableParkingAreas} onChange={setEditParkingArea} />}
-          <Input id="correctionReason" label="Reason" value={reason} onChange={(event) => setReason(event.target.value)} required />
-          <div className="flex gap-3"><Button type="submit" variant={editAction === "VOID" ? "danger" : "primary"} disabled={saving}>{saving ? "Saving..." : editAction === "VOID" ? "Void Log" : "Save Correction"}</Button><Button type="button" variant="secondary" onClick={() => setEditingLog(null)}>Cancel</Button></div>
-        </form>}
-
-        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
-        {success && <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{success}</p>}
+        {error && <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700" role="alert">{error}</div>}
+        {success && <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700">{success}</div>}
       </div>
     </PageContainer>
   );

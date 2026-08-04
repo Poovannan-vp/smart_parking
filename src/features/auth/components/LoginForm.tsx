@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import Button from "../../../shared/components/Button";
-import Card from "../../../shared/components/Card";
 import Input from "../../../shared/components/Input";
 import useAuth from "../hooks/useAuth";
 import { getDashboardRoute } from "../services/authServices";
@@ -13,6 +12,7 @@ export default function LoginForm() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,39 +37,49 @@ export default function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <h1 className="text-center text-2xl font-bold">Smart Parking</h1>
-          <p className="mt-2 text-center text-slate-500">Sign in to your account</p>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <Input
+        id="email"
+        type="email"
+        label="Email address"
+        placeholder="employee@temenos.com"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        required
+      />
+
+      <Input
+        id="password"
+        type="password"
+        label="Password"
+        placeholder="••••••••"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        required
+      />
+
+      <div className="flex items-center justify-between text-sm text-slate-600 pt-1">
+        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(event) => setRememberMe(event.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-[#0F2042] focus:ring-[#00A3E0]"
+          />
+          <span className="text-xs text-slate-600">Remember me</span>
+        </label>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-medium text-rose-700" role="alert">
+          {error}
         </div>
+      )}
 
-        <Input
-          id="email"
-          type="email"
-          label="Email"
-          placeholder="name@company.com"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-        />
-
-        <Input
-          id="password"
-          type="password"
-          label="Password"
-          placeholder="Password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-        />
-
-        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
-
-        <Button fullWidth type="submit" disabled={loading}>
-          {loading ? "Signing in..." : "Login"}
-        </Button>
-      </form>
-    </Card>
+      <Button fullWidth type="submit" variant="primary" disabled={loading} className="py-3">
+        {loading ? "Signing in..." : "Sign in to Dashboard"}
+      </Button>
+    </form>
   );
 }
+

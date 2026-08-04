@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 import { ROUTES } from "../../../app/routes";
 import Button from "../../../shared/components/Button";
+import Card from "../../../shared/components/Card";
 import PageContainer from "../../../shared/components/PageContainer";
+import PageHeader from "../../../shared/components/PageHeader";
+import StatusBadge from "../../../shared/components/StatusBadge";
 import {
   getDeveloperDiagnostics,
   type DeveloperDiagnostics,
@@ -49,81 +52,106 @@ export default function DeveloperDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto max-w-5xl space-y-6 py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Developer Dashboard</h1>
-            <p className="mt-1 text-slate-500">Read-only system health and data-quality monitoring.</p>
-          </div>
-          <Button variant="secondary" onClick={() => void loadDiagnostics()} disabled={loading}>
-            {loading ? "Checking..." : "Refresh Diagnostics"}
-          </Button>
-        </div>
+      <div className="mx-auto max-w-6xl space-y-8 py-8">
+        <PageHeader
+          title="Developer Dashboard"
+          subtitle="System diagnostics, Firestore health, and cross-role testing in one view."
+          actions={
+            <Button variant="secondary" onClick={() => void loadDiagnostics()} disabled={loading}>
+              {loading ? "Checking..." : "Refresh Diagnostics"}
+            </Button>
+          }
+        />
 
-        <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="font-semibold text-amber-900">Role Testing</h2>
-          <p className="mt-1 text-sm text-amber-800">Developer test access is enabled for every portal. Restrict this before production.</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => navigate(ROUTES.EMPLOYEE)}>Employee Portal</Button>
-            <Button variant="secondary" onClick={() => navigate(ROUTES.SECURITY)}>Security Portal</Button>
-            <Button variant="secondary" onClick={() => navigate(ROUTES.ADMIN)}>Admin Portal</Button>
+        <Card className="border-amber-200 bg-amber-50">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">Role Testing</p>
+              <p className="mt-2 text-sm text-amber-800">Developer access is enabled for all portals. Keep this restricted in production.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="secondary" onClick={() => navigate(ROUTES.EMPLOYEE)}>Employee</Button>
+              <Button variant="secondary" onClick={() => navigate(ROUTES.SECURITY)}>Security</Button>
+              <Button variant="secondary" onClick={() => navigate(ROUTES.ADMIN)}>Admin</Button>
+            </div>
           </div>
-        </section>
+        </Card>
 
-        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
+        {error ? <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700" role="alert">{error}</div> : null}
 
         {loading && !diagnostics ? (
-          <div className="rounded-xl bg-white p-5 shadow text-slate-500">Checking Firestore data...</div>
+          <div className="rounded-3xl bg-white p-6 shadow">Checking Firestore data...</div>
         ) : diagnostics ? (
           <>
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <MetricCard label="Firestore" value="Connected" tone="success" />
               <MetricCard label="Buildings" value={diagnostics.buildingCount} />
               <MetricCard label="Parking Areas" value={diagnostics.parkingAreaCount} />
               <MetricCard label="Vehicle Logs" value={diagnostics.vehicleLogCount} />
-            </section>
+            </div>
 
-            <section className="rounded-xl bg-white p-5 shadow">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold">Data Health</h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {checkedAt ? `Last checked ${checkedAt.toLocaleTimeString("en-IN")}` : "Not checked yet"}
-                  </p>
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+              <Card>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-500">Data Health</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">Firestore diagnostics</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-sm font-medium">
+                    <StatusBadge variant={errorCount > 0 ? "danger" : "success"}>{errorCount} errors</StatusBadge>
+                    <StatusBadge variant={warningCount > 0 ? "warning" : "info"}>{warningCount} warnings</StatusBadge>
+                  </div>
                 </div>
-                <div className="flex gap-2 text-sm font-medium">
-                  <span className="rounded-full bg-red-50 px-3 py-1 text-red-700">{errorCount} errors</span>
-                  <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">{warningCount} warnings</span>
+
+                <div className="mt-5 text-sm text-slate-500">
+                  {checkedAt ? `Last checked ${checkedAt.toLocaleTimeString("en-IN")}` : "No diagnostics run yet."}
                 </div>
-              </div>
 
-              {diagnostics.issues.length === 0 ? (
-                <p className="mt-5 rounded-lg bg-green-50 p-4 text-sm text-green-700">
-                  No configuration or occupancy problems were found.
-                </p>
-              ) : (
-                <ul className="mt-5 space-y-3">
-                  {diagnostics.issues.map((issue) => (
-                    <li
-                      key={issue.id}
-                      className={`rounded-lg border p-4 ${
-                        issue.severity === "error"
-                          ? "border-red-200 bg-red-50"
-                          : "border-amber-200 bg-amber-50"
-                      }`}
-                    >
-                      <p className="font-medium text-slate-800">{issue.title}</p>
-                      <p className="mt-1 text-sm text-slate-600">{issue.detail}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+                {diagnostics.issues.length === 0 ? (
+                  <div className="mt-6 rounded-3xl bg-emerald-50 p-5 text-sm text-emerald-700">
+                    No configuration or occupancy problems were found.
+                  </div>
+                ) : (
+                  <ul className="mt-6 space-y-3">
+                    {diagnostics.issues.map((issue) => (
+                      <li key={issue.id} className={`rounded-3xl border p-4 ${issue.severity === "error" ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-semibold text-slate-900">{issue.title}</p>
+                          <StatusBadge variant={issue.severity === "error" ? "danger" : "warning"}>{issue.severity}</StatusBadge>
+                        </div>
+                        <p className="mt-2 text-sm text-slate-600">{issue.detail}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
 
-            <section className="rounded-xl bg-white p-5 shadow">
-              <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">Recent Vehicle-Log Audits</h2><p className="mt-1 text-sm text-slate-500">Latest correction, void, and exit actions.</p></div><Button variant="secondary" onClick={exportDiagnostics}>Export Diagnostics</Button></div>
-              {diagnostics.recentAudits.length === 0 ? <p className="mt-4 text-sm text-slate-500">No audit events found.</p> : <ul className="mt-4 space-y-2">{diagnostics.recentAudits.map((audit) => <li key={audit.id} className="rounded-lg border border-slate-200 p-3 text-sm"><span className="font-medium">{audit.action ?? "Audit event"}</span>{audit.reason ? ` · ${audit.reason}` : ""}</li>)}</ul>}
-            </section>
+              <Card>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-500">Recent audits</p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Vehicle-log history</h2>
+                  </div>
+                  <Button variant="secondary" onClick={exportDiagnostics}>Export JSON</Button>
+                </div>
+
+                {diagnostics.recentAudits.length === 0 ? (
+                  <p className="mt-6 text-sm text-slate-500">No audit events found.</p>
+                ) : (
+                  <ul className="mt-6 space-y-3">
+                    {diagnostics.recentAudits.map((audit) => (
+                      <li key={audit.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-medium text-slate-900">{audit.action ?? "Audit event"}</p>
+                          <span className="text-slate-500">{audit.correctedBy ? `By ${audit.correctedBy}` : null}</span>
+                        </div>
+                        {audit.reason ? <p className="mt-2 text-slate-600">{audit.reason}</p> : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            </div>
 
             <p className="text-sm text-slate-500">
               This page normally reads operational data. The Role Testing panel above is temporarily enabled for development.
