@@ -133,21 +133,33 @@ export default function VehicleLogsPage() {
     setError(null);
     setSuccess(null);
 
-    if (!activeBuildingId || !parkingArea) {
-      setError("No assigned building or parking area is available.");
-      return;
-    }
-
+    if (!user || !activeBuildingId || !parkingArea) {
+  setError("User information is unavailable.");
+  return;
+}
     setSaving(true);
 
     try {
-      await createVehicleLog({ buildingId: activeBuildingId, vehicleNumber, parkingArea });
+      await createVehicleLog({
+  buildingId: activeBuildingId,
+  vehicleNumber,
+  parkingArea,
+  loggedBy: user.uid,
+  loggedByName: `${user.firstName} ${user.lastName}`.trim(),
+  loggedByRole: user.role,
+});
       setVehicleNumber("");
       setSuccess("Vehicle logged for today.");
       await loadLogs();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save the vehicle log.");
-    } finally {
+  console.error("Vehicle Log Error:", submitError);
+
+  setError(
+    submitError instanceof Error
+      ? submitError.message
+      : "Unable to save the vehicle log."
+  );
+}finally {
       setSaving(false);
     }
   }
@@ -320,8 +332,8 @@ export default function VehicleLogsPage() {
                     {(log.status ?? "ACTIVE") === "ACTIVE" && (
                       <div className="mt-4 flex flex-wrap gap-3">
                         <Button variant="secondary" onClick={() => void handleExit(log)} disabled={saving}>Mark Exit</Button>
-                        <Button variant="secondary" onClick={() => beginEdit(log, "CORRECT")}>Correct</Button>
-                        <Button variant="danger" onClick={() => beginEdit(log, "VOID")}>Void</Button>
+                        <Button variant="secondary" onClick={() => beginEdit(log, "CORRECT")}>Edit details</Button>
+                        <Button variant="danger" onClick={() => beginEdit(log, "VOID")}>delete</Button>
                       </div>
                     )}
                   </li>
@@ -346,7 +358,7 @@ export default function VehicleLogsPage() {
                 <Input id="correctionReason" label="Reason" value={reason} onChange={(event) => setReason(event.target.value)} required />
                 <div className="flex flex-wrap gap-3">
                   <Button type="submit" variant={editAction === "VOID" ? "danger" : "primary"} disabled={saving}>
-                    {saving ? "Saving..." : editAction === "VOID" ? "Void Log" : "Save Correction"}
+                    {saving ? "Saving..." : editAction === "VOID" ? "Save Log" : "Save Correction"}
                   </Button>
                   <Button type="button" variant="secondary" onClick={() => setEditingLog(null)}>Cancel</Button>
                 </div>

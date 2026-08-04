@@ -25,6 +25,9 @@ export interface VehicleLog {
   status?: "ACTIVE" | "EXITED" | "VOID";
   updatedAt?: Timestamp;
   lastCorrectionReason?: string;
+  loggedBy: string;
+  loggedByName: string;
+  loggedByRole: string;
 }
 
 export function getVehicleLogDate() {
@@ -49,10 +52,16 @@ export async function createVehicleLog({
   buildingId,
   vehicleNumber,
   parkingArea,
+  loggedBy,
+  loggedByName,
+  loggedByRole,
 }: {
   buildingId: string;
   vehicleNumber: string;
   parkingArea?: keyof Parking;
+  loggedBy: string;
+  loggedByName: string;
+  loggedByRole: string;
 }) {
   const normalizedVehicleNumber = normalizeVehicleNumber(vehicleNumber);
 
@@ -62,33 +71,46 @@ export async function createVehicleLog({
 
   const logDate = getVehicleLogDate();
   const logId = `${buildingId}_${logDate}_${normalizedVehicleNumber}`;
+
   const vehicleLogRef = doc(db, "vehicleLogs", logId);
 
-  await runTransaction(db, async (transaction) => {
-    const existingLog = await transaction.get(vehicleLogRef);
+  try {
+    await runTransaction(db, async (transaction) => {
+      const existingLog = await transaction.get(vehicleLogRef);
 
-    if (existingLog.exists()) {
-      throw new Error("This vehicle is already logged for today.");
-    }
+      if (existingLog.exists()) {
+        throw new Error("This vehicle is already logged for today.");
+      }
 
-    transaction.set(vehicleLogRef, {
-      buildingId,
-      buildingDate: `${buildingId}_${logDate}`,
-      vehicleNumber: normalizedVehicleNumber,
-      ...(parkingArea && { parkingArea }),
-      logDate,
-      status: "ACTIVE",
-      loggedAt: serverTimestamp(),
+      transaction.set(vehicleLogRef, {
+        buildingId,
+        buildingDate: `${buildingId}_${logDate}`,
+        vehicleNumber: normalizedVehicleNumber,
+        ...(parkingArea && { parkingArea }),
+        logDate,
+        status: "ACTIVE",
+        loggedAt: serverTimestamp(),
+        loggedBy,
+        loggedByName,
+        loggedByRole,
+      });
     });
-  });
+  } catch (error) {
+    console.error("Create Vehicle Log Error:", error);
+    throw error;
+  }
 }
 
-export async function getVehicleLogs(buildingId: string, logDate: string) {
-  const buildingDate = `${buildingId}_${logDate}`;
+export async function getVehicleLogs(
+  buildingId: string,
+  logDate: string,
+) {
   const logsQuery = query(
     vehicleLogsCollection,
-    where("buildingDate", "==", buildingDate),
+    where("buildingId", "==", buildingId),
+    where("logDate", "==", logDate),
   );
+
   const snapshot = await getDocs(logsQuery);
 
   return snapshot.docs
