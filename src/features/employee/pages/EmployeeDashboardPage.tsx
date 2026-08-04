@@ -19,7 +19,6 @@ import {
   type EmployeeVehicle,
   updateEmployeeVehicle,
 } from "../../../services/employeeVehicleService";
-import { createVehicleLog } from "../../../services/vehicleLogService";
 
 type ParkingAreaKey = "closedBike" | "closedCar" | "openCar" | "general";
 
@@ -141,7 +140,7 @@ export default function EmployeeDashboardPage() {
 
   async function handleSaveVehicle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editingVehicle) return;
+    if (!editingVehicle || !user?.uid) return;
     setVehicleFormError(null);
 
     try {
@@ -168,34 +167,10 @@ export default function EmployeeDashboardPage() {
     }
   }
 
-  async function handleBookParking(event: FormEvent<HTMLFormElement>) {
+  // Booking is not wired up yet — kept as a UI-only no-op for now.
+  function handleBookParking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBookingMessage(null);
-
-    if (!user?.buildingId) {
-      setBookingMessage("No assigned office is available for booking.");
-      return;
-    }
-    if (!selectedParkingArea) {
-      setBookingMessage("Select an available parking area.");
-      return;
-    }
-    const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId);
-    if (!selectedVehicle) {
-      setBookingMessage("Select a registered vehicle first.");
-      return;
-    }
-
-    try {
-      await createVehicleLog({
-        buildingId: user.buildingId,
-        vehicleNumber: selectedVehicle.registrationNumber,
-        parkingArea: selectedParkingArea as keyof typeof areaLabels,
-      });
-      setBookingMessage("Parking slot booked successfully for today.");
-    } catch (bookingError) {
-      setBookingMessage(bookingError instanceof Error ? bookingError.message : "Unable to book parking.");
-    }
+    setBookingMessage("Booking isn't available yet. This feature is coming soon.");
   }
 
   const assignedOfficeName = building ? `${building.name}, ${building.city}` : "Assigned office";
@@ -531,6 +506,3 @@ function ParkingCategoryCard({ area }: { area: { key: ParkingAreaKey; section: s
     </div>
   );
 }
-
-
-
