@@ -35,6 +35,36 @@ function getAvailabilityStatus(available: number, capacity: number) {
   return "Available";
 }
 
+const officeParkingLabels: Record<string, string> = {
+  closedBike: "Closed Bike",
+  closedCar: "Closed Car",
+  openCar: "Open Car",
+};
+
+function getBranchParkingAreas(building: ManagedBuilding) {
+  const usesOfficeParking = building.name === "Chennai KG" || building.name === "Chennai SR";
+
+  if (usesOfficeParking) {
+    return Object.entries(building.parking)
+      .filter(([key]) => key in officeParkingLabels)
+      .map(([key, area]) => ({
+        key,
+        label: officeParkingLabels[key],
+        capacity: area?.capacity ?? 0,
+        occupied: area?.occupied ?? 0,
+      }))
+      .filter((area) => area.capacity > 0 || area.occupied > 0);
+  }
+
+  const generalArea = building.parking.general;
+  return generalArea ? [{ key: "general", label: "General Parking", capacity: generalArea.capacity, occupied: generalArea.occupied }] : [];
+}
+
+function getParkingStatus(building: ManagedBuilding) {
+  const areas = getBranchParkingAreas(building);
+  return areas.length > 0 ? "Open" : "Closed";
+}
+
 function getAvailabilityBadge(available: number, capacity: number) {
   const status = getAvailabilityStatus(available, capacity);
   switch (status) {
@@ -172,12 +202,14 @@ export default function HomePage() {
               ) : (
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {buildings.map((branch) => {
-                    const branchCapacity = Object.values(branch.parking).reduce((sum, area) => sum + (area ? area.capacity : 0), 0);
-                    const branchOccupied = Object.values(branch.parking).reduce((sum, area) => sum + (area ? area.occupied : 0), 0);
+                    const parkingAreas = getBranchParkingAreas(branch);
+                    const branchCapacity = parkingAreas.reduce((sum, area) => sum + area.capacity, 0);
+                    const branchOccupied = parkingAreas.reduce((sum, area) => sum + area.occupied, 0);
                     const branchAvailable = branchCapacity - branchOccupied;
                     const occupancyRate = branchCapacity ? Math.round((branchOccupied / branchCapacity) * 100) : 0;
                     const availabilityStatus = getAvailabilityStatus(branchAvailable, branchCapacity);
                     const availabilityBadge = getAvailabilityBadge(branchAvailable, branchCapacity);
+                    const parkingStatus = getParkingStatus(branch);
                     const lastUpdated = formatUpdatedAt(branch.updatedAt);
 
                     return (
@@ -191,21 +223,43 @@ export default function HomePage() {
                                 {branch.city}
                               </p>
                             </div>
-                            <StatusBadge variant={branch.status === "Open" ? "success" : "danger"}>{branch.status}</StatusBadge>
+                            <StatusBadge variant={parkingStatus === "Open" ? "success" : "danger"}>{parkingStatus}</StatusBadge>
                           </div>
 
-                          <div className="mt-6 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-4 text-center text-sm border border-slate-100">
-                            <div>
-                              <p className="text-base font-bold text-[#0F2042]">{branchCapacity}</p>
-                              <p className="text-xs text-slate-500">Capacity</p>
+                          <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                            <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                              <div>
+                                <p className="text-base font-bold text-[#0F2042]">{branchCapacity}</p>
+                                <p className="text-xs text-slate-500">Capacity</p>
+                              </div>
+                              <div>
+                                <p className="text-base font-bold text-emerald-600">{branchAvailable}</p>
+                                <p className="text-xs text-slate-500">Available</p>
+                              </div>
+                              <div>
+                                <p className="text-base font-bold text-rose-600">{branchOccupied}</p>
+                                <p className="text-xs text-slate-500">Occupied</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-base font-bold text-emerald-600">{branchAvailable}</p>
-                              <p className="text-xs text-slate-500">Available</p>
-                            </div>
-                            <div>
-                              <p className="text-base font-bold text-rose-600">{branchOccupied}</p>
-                              <p className="text-xs text-slate-500">Occupied</p>
+
+                            <div className="mt-4 space-y-2">
+                              {parkingAreas.map((area) => {
+                                const areaAvailable = area.capacity - area.occupied;
+                                const areaStatus = areaAvailable === 0 ? "Closed" : "Open";
+                                const areaBadge = areaStatus === "Closed" ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700";
+
+                                return (
+                                  <div key={area.key} className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div>
+                                        <p className="text-sm font-semibold text-slate-900">{area.label}</p>
+                                        <p className="text-xs text-slate-500">{area.capacity} cap · {area.occupied} occupied</p>
+                                      </div>
+                                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${areaBadge}`}>{areaStatus}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
 
