@@ -142,7 +142,7 @@ export default function SecurityDashboardPage() {
                   </p>
                 </div>
                 <Button variant="teal" onClick={() => navigate(ROUTES.VEHICLE_LOGS)}>
-                  Manage Gate Vehicle Log
+                  Enter Vehicle Log
                 </Button>
               </div>
 
