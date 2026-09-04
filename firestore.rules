@@ -28,7 +28,7 @@ service cloud.firestore {
 
     function isDeveloper() {
       return signedIn() && userRole() == 'DEVELOPER';
-    }
+    } 
 
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin() || isDeveloper());
@@ -47,6 +47,17 @@ service cloud.firestore {
         allow read: if signedIn();
         allow create, update: if isAdmin() || isSecurityFor(buildingId) || isDeveloper();
         allow delete: if isAdmin() || isDeveloper();
+      }
+
+      match /layouts/{layoutId} {
+        allow read: if signedIn();
+        allow create, update, delete: if isAdmin() || isDeveloper();
+
+        match /status/{statusDocId} {
+          allow read: if signedIn();
+          allow create, update: if isAdmin() || isDeveloper() || isSecurityFor(buildingId);
+          allow delete: if isAdmin() || isDeveloper();
+        }
       }
     }
 

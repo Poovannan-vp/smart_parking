@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { HiPlusCircle } from "react-icons/hi2";
 
 import Button from "../../../shared/components/Button";
 import Card from "../../../shared/components/Card";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
 import PageContainer from "../../../shared/components/PageContainer";
 import PageHeader from "../../../shared/components/PageHeader";
 import StatusBadge from "../../../shared/components/StatusBadge";
+import Alert from "../../../shared/components/Alert";
+import LoadingState from "../../../shared/components/LoadingState";
 import { createBuilding, getManagedBuildings, updateBuilding, type BuildingInput, type ManagedBuilding } from "../../../services/buildingService";
+import { ROUTES } from "../../../app/routes";
 
 const parkingAreaLabels: Record<keyof BuildingInput["parking"], string> = {
   closedBike: "Closed Bike",
@@ -35,6 +40,7 @@ function toBuildingInput(building: ManagedBuilding): BuildingInput {
 }
 
 export default function BuildingsPage() {
+  const navigate = useNavigate();
   const [buildings, setBuildings] = useState<ManagedBuilding[]>([]);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<BuildingInput>(emptyBuilding);
@@ -191,11 +197,16 @@ export default function BuildingsPage() {
           title="Buildings"
           subtitle="Manage parking buildings and capacity across the Smart Parking network."
           actions={
-            <Button variant="secondary" onClick={startNewBuilding}>
-              <span className="inline-flex items-center gap-2">
-                <HiPlusCircle className="h-5 w-5" /> New Building
-              </span>
-            </Button>
+            <>
+              <Button variant="secondary" onClick={() => navigate(ROUTES.ADMIN)}>
+                Back to Admin
+              </Button>
+              <Button variant="secondary" onClick={startNewBuilding}>
+                <span className="inline-flex items-center gap-2">
+                  <HiPlusCircle className="h-5 w-5" /> New Building
+                </span>
+              </Button>
+            </>
           }
         />
 
@@ -230,7 +241,7 @@ export default function BuildingsPage() {
               </div>
 
               {loading ? (
-                <p className="text-sm text-slate-500">Loading buildings…</p>
+                <LoadingState message="Loading buildings…" inline />
               ) : buildings.length === 0 ? (
                 <p className="text-sm text-slate-500">No buildings found. Add your first building.</p>
               ) : (
@@ -242,7 +253,7 @@ export default function BuildingsPage() {
                         onClick={() => selectBuilding(building)}
                         className={`w-full rounded-3xl border p-4 text-left transition ${
                           selectedBuildingId === building.id
-                            ? "border-slate-900 bg-slate-950 text-white"
+                            ? "border-temenos-navy bg-temenos-navy text-white"
                             : "border-slate-200 bg-white hover:border-slate-300"
                         }`}
                       >
@@ -296,21 +307,18 @@ export default function BuildingsPage() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="buildingStatus" className="text-sm font-semibold text-slate-800">Status</label>
-                    <select
-                      id="buildingStatus"
-                      value={draft.status}
-                      onChange={(event) => setDraft((current) => ({
-                        ...current,
-                        status: event.target.value as BuildingInput["status"],
-                      }))}
-                      className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
-                    >
-                      <option value="Open">Open</option>
-                      <option value="Closed">Closed</option>
-                    </select>
-                  </div>
+                  <Select
+                    id="buildingStatus"
+                    label="Status"
+                    value={draft.status}
+                    onChange={(event) => setDraft((current) => ({
+                      ...current,
+                      status: event.target.value as BuildingInput["status"],
+                    }))}
+                  >
+                    <option value="Open">Open</option>
+                    <option value="Closed">Closed</option>
+                  </Select>
 
                   <fieldset className="space-y-3">
                     <legend className="text-sm font-semibold text-slate-800">Parking areas</legend>
@@ -344,8 +352,8 @@ export default function BuildingsPage() {
                     })}
                   </fieldset>
 
-                  {error && <p className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700" role="alert">{error}</p>}
-                  {success && <p className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700">{success}</p>}
+                  {error && <Alert variant="error">{error}</Alert>}
+                  {success && <Alert variant="success">{success}</Alert>}
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                     <Button type="button" variant="secondary" onClick={closeForm} className="w-full sm:w-auto">Cancel</Button>

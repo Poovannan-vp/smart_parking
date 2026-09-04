@@ -12,11 +12,11 @@ export default function SignUpPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-5">
             <Logo hideText={false} />
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Request Access</span>
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-temenos-teal">Request Access</span>
           </div>
 
           <div className="space-y-3">
-            <h1 className="text-2xl font-bold tracking-tight text-[#0F2042]">
+            <h1 className="text-2xl font-bold tracking-tight text-temenos-navy">
               Access Granted by Administrator
             </h1>
             <p className="text-sm leading-relaxed text-slate-600">
@@ -25,7 +25,7 @@ export default function SignUpPage() {
           </div>
 
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-5 space-y-2">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0F2042]">Need an Account?</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-temenos-navy">Need an Account?</p>
             <p className="text-xs text-slate-600 leading-relaxed">
               If you are a new employee or require updated role permissions (Security, Admin), please submit an access request to your IT Support team.
             </p>

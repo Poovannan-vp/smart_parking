@@ -16,13 +16,13 @@ type ButtonProps<T extends ElementType = "button"> = {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#0F2042] text-white shadow-sm shadow-[#0F2042]/15 hover:bg-[#0B192C] focus:ring-2 focus:ring-[#00A3E0] focus:ring-offset-2",
+    "bg-temenos-navy text-white shadow-sm shadow-temenos-navy/15 hover:bg-temenos-navy-dark focus:ring-2 focus:ring-temenos-teal focus:ring-offset-2",
 
   secondary:
-    "bg-white text-slate-800 border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:ring-2 focus:ring-[#00A3E0] focus:ring-offset-2",
+    "bg-white text-slate-800 border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:ring-2 focus:ring-temenos-teal focus:ring-offset-2",
 
   teal:
-    "bg-[#00A3E0] text-white shadow-sm shadow-[#00A3E0]/20 hover:bg-[#0088BC] focus:ring-2 focus:ring-[#00A3E0] focus:ring-offset-2",
+    "bg-temenos-teal text-white shadow-sm shadow-temenos-teal/20 hover:bg-temenos-teal-dark focus:ring-2 focus:ring-temenos-teal focus:ring-offset-2",
 
   danger:
     "bg-rose-600 text-white shadow-sm shadow-rose-600/20 hover:bg-rose-700 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2",

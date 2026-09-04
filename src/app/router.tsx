@@ -19,6 +19,7 @@ import BuildingsPage from "../features/admin/pages/BuildingsPage";
 import CreateUserPage from "../features/admin/pages/CreateUserPage";
 import SettingsPage from "../features/admin/pages/SettingsPage";
 import UsersPage from "../features/admin/pages/UsersPage";
+import ParkingLayoutsPage from "../features/admin/pages/ParkingLayoutsPage";
 import DeveloperDashboardPage from "../features/developer/pages/DeveloperDashboardPage";
 
 export const router = createBrowserRouter([
@@ -83,6 +84,14 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.SETTINGS,
         element: <RequireRole allowedRoles={["ADMIN", "DEVELOPER"]}><SettingsPage /></RequireRole>,
+      },
+      {
+        path: ROUTES.PARKING_LAYOUTS,
+        element: <RequireRole allowedRoles={["ADMIN", "DEVELOPER"]}><ParkingLayoutsPage /></RequireRole>,
+      },
+      {
+        path: ROUTES.PARKING_LAYOUT_EDITOR,
+        element: <RequireRole allowedRoles={["ADMIN", "DEVELOPER"]}><ParkingLayoutsPage /></RequireRole>,
       },
       {
         path: ROUTES.DEVELOPER,

@@ -15,13 +15,23 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Editor / tool directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+.claude/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.tsbuildinfo
+
+# Firebase CLI local artifacts
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log

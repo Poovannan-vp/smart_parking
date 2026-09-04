@@ -6,7 +6,7 @@
   --color-temenos-teal: #00A3E0;
   --color-temenos-teal-dark: #0088BC;
   --color-temenos-teal-light: #E0F2FE;
-  --color-temenos-bg: #F8FAFC;
+  --color-temenos-bg: #EEF1F6;
   --color-temenos-card: #FFFFFF;
   --color-temenos-border: #E2E8F0;
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -17,5 +17,28 @@
     font-family: var(--font-sans);
     background-color: var(--color-temenos-bg);
     color: #0F172A;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in-up 0.35s ease-out both;
   }
 }
