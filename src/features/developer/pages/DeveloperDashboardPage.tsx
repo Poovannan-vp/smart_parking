@@ -7,6 +7,8 @@ import Card from "../../../shared/components/Card";
 import PageContainer from "../../../shared/components/PageContainer";
 import PageHeader from "../../../shared/components/PageHeader";
 import StatusBadge from "../../../shared/components/StatusBadge";
+import Alert from "../../../shared/components/Alert";
+import LoadingState from "../../../shared/components/LoadingState";
 import {
   getDeveloperDiagnostics,
   type DeveloperDiagnostics,
@@ -78,10 +80,12 @@ export default function DeveloperDashboardPage() {
           </div>
         </Card>
 
-        {error ? <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700" role="alert">{error}</div> : null}
+        {error ? <Alert variant="error">{error}</Alert> : null}
 
         {loading && !diagnostics ? (
-          <div className="rounded-3xl bg-white p-6 shadow">Checking Firestore data...</div>
+          <Card>
+            <LoadingState message="Checking Firestore data..." inline />
+          </Card>
         ) : diagnostics ? (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -109,13 +113,13 @@ export default function DeveloperDashboardPage() {
                 </div>
 
                 {diagnostics.issues.length === 0 ? (
-                  <div className="mt-6 rounded-3xl bg-emerald-50 p-5 text-sm text-emerald-700">
+                  <Alert variant="success" className="mt-6">
                     No configuration or occupancy problems were found.
-                  </div>
+                  </Alert>
                 ) : (
                   <ul className="mt-6 space-y-3">
                     {diagnostics.issues.map((issue) => (
-                      <li key={issue.id} className={`rounded-3xl border p-4 ${issue.severity === "error" ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+                      <li key={issue.id} className={`rounded-3xl border p-4 ${issue.severity === "error" ? "border-rose-200 bg-rose-50" : "border-amber-200 bg-amber-50"}`}>
                         <div className="flex items-center justify-between gap-3">
                           <p className="font-semibold text-slate-900">{issue.title}</p>
                           <StatusBadge variant={issue.severity === "error" ? "danger" : "warning"}>{issue.severity}</StatusBadge>
@@ -174,9 +178,9 @@ function MetricCard({
   tone?: "default" | "success";
 }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-200/50">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className={`mt-2 text-2xl font-bold ${tone === "success" ? "text-green-600" : "text-slate-900"}`}>
+      <p className={`mt-2 text-2xl font-bold ${tone === "success" ? "text-emerald-600" : "text-slate-900"}`}>
         {value}
       </p>
     </div>

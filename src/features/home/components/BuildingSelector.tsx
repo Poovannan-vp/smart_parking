@@ -25,6 +25,11 @@ export default function BuildingSelector({
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition duration-200 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
       >
+        {!selectedBuilding && (
+          <option value="" disabled>
+            Select a location...
+          </option>
+        )}
         {buildings.map((building) => (
           <option key={building.id} value={building.id}>
             {building.name}

@@ -34,16 +34,16 @@ export default function Header({
     }
   };
 
-  const handleAvailabilityClick = () => {
+  const handleHowItWorksClick = () => {
     if (window.location.pathname === "/") {
-      const el = document.getElementById("buildings");
+      const el = document.getElementById("how-it-works");
       if (el) {
         el.scrollIntoView({ behavior: "smooth" });
       } else {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } else {
-      navigate("/#buildings");
+      navigate("/#how-it-works");
     }
   };
 
@@ -57,7 +57,7 @@ export default function Header({
               type="button"
               onClick={onToggleSidebar}
               aria-label="Toggle navigation drawer"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#00A3E0]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-temenos-teal lg:hidden"
             >
               <HiBars3 className="h-5 w-5" />
             </button>
@@ -71,9 +71,9 @@ export default function Header({
         {/* Center / Title section for Authenticated */}
         {!isPublic ? (
           <div className="hidden items-center gap-2 text-center md:flex">
-            <span className="text-xs font-bold uppercase tracking-[0.24em] text-[#00A3E0]">Enterprise Portal</span>
+            <span className="text-xs font-bold uppercase tracking-[0.24em] text-temenos-teal">Enterprise Portal</span>
             <span className="text-slate-300">•</span>
-            <span className="text-sm font-semibold text-[#0F2042]">Smart Parking System</span>
+            <span className="text-sm font-semibold text-temenos-navy">Smart Parking System</span>
           </div>
         ) : null}
 
@@ -83,16 +83,16 @@ export default function Header({
             <button
               type="button"
               onClick={handleHomeClick}
-              className="transition hover:text-[#00A3E0]"
+              className="transition hover:text-temenos-teal"
             >
               Home
             </button>
             <button
               type="button"
-              onClick={handleAvailabilityClick}
-              className="transition hover:text-[#00A3E0]"
+              onClick={handleHowItWorksClick}
+              className="transition hover:text-temenos-teal"
             >
-              Office Availability
+              How It Works
             </button>
           </nav>
         ) : null}
@@ -100,11 +100,8 @@ export default function Header({
         {/* Right section for Public */}
         {isPublic ? (
           <div className="hidden items-center gap-3 md:flex">
-            <Button variant="ghost" onClick={() => navigate(ROUTES.LOGIN)}>
+            <Button variant="teal" onClick={() => navigate(ROUTES.LOGIN)}>
               Login
-            </Button>
-            <Button variant="teal" onClick={() => navigate(ROUTES.SIGNUP)}>
-              Request Access
             </Button>
           </div>
         ) : null}
@@ -149,7 +146,7 @@ export default function Header({
                 setMobileMenuOpen(false);
                 handleHomeClick();
               }}
-              className="text-left py-2 text-slate-700 hover:text-[#00A3E0]"
+              className="text-left py-2 text-slate-700 hover:text-temenos-teal"
             >
               Home
             </button>
@@ -157,18 +154,15 @@ export default function Header({
               type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
-                handleAvailabilityClick();
+                handleHowItWorksClick();
               }}
-              className="text-left py-2 text-slate-700 hover:text-[#00A3E0]"
+              className="text-left py-2 text-slate-700 hover:text-temenos-teal"
             >
-              Office Availability
+              How It Works
             </button>
             <div className="pt-2 flex flex-col gap-2">
-              <Button variant="secondary" fullWidth onClick={() => navigate(ROUTES.LOGIN)}>
+              <Button variant="teal" fullWidth onClick={() => navigate(ROUTES.LOGIN)}>
                 Login
-              </Button>
-              <Button variant="teal" fullWidth onClick={() => navigate(ROUTES.SIGNUP)}>
-                Request Access
               </Button>
             </div>
           </div>

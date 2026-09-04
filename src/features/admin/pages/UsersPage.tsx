@@ -8,6 +8,8 @@ import Input from "../../../shared/components/Input";
 import PageContainer from "../../../shared/components/PageContainer";
 import PageHeader from "../../../shared/components/PageHeader";
 import StatusBadge from "../../../shared/components/StatusBadge";
+import Alert from "../../../shared/components/Alert";
+import LoadingState from "../../../shared/components/LoadingState";
 import {
   deleteManagedUser,
   getManagedUsers,
@@ -17,6 +19,18 @@ import {
 } from "../../../services/userService";
 import LoadMoreButton from "../../../components/LoadMoreButton";
 import { ROUTES } from "../../../app/routes";
+import type { UserRole } from "../../../types/common";
+
+const ROLE_FILTERS = ["ALL", "EMPLOYEE", "SECURITY", "ADMIN", "DEVELOPER"] as const;
+type RoleFilter = (typeof ROLE_FILTERS)[number];
+
+const ROLE_LABELS: Record<RoleFilter, string> = {
+  ALL: "All roles",
+  EMPLOYEE: "Employee",
+  SECURITY: "Security",
+  ADMIN: "Admin",
+  DEVELOPER: "Developer",
+};
 
 export default function UsersPage() {
   const navigate = useNavigate();
@@ -25,6 +39,7 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [search, setSearch] = useState<string>("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const [displayedCount, setDisplayedCount] = useState<number>(4);
 
   async function loadUsers() {
@@ -44,7 +59,10 @@ export default function UsersPage() {
     void loadUsers();
   }, []);
 
-  const filteredUsers = useMemo(() => {
+  // Text search narrows first; the role filter then narrows further. Chip
+  // counts are computed from this so they reflect live search matches per
+  // role, not the unfiltered total.
+  const searchedUsers = useMemo(() => {
     const normalized = search.trim().toLowerCase();
     if (!normalized) return users;
 
@@ -55,6 +73,25 @@ export default function UsersPage() {
         .includes(normalized),
     );
   }, [search, users]);
+
+  const roleCounts = useMemo(() => {
+    const counts = { ALL: searchedUsers.length } as Record<RoleFilter, number>;
+    for (const role of ROLE_FILTERS) {
+      if (role === "ALL") continue;
+      counts[role] = searchedUsers.filter((user) => user.role === role).length;
+    }
+    return counts;
+  }, [searchedUsers]);
+
+  const filteredUsers = useMemo(() => {
+    if (roleFilter === "ALL") return searchedUsers;
+    return searchedUsers.filter((user) => user.role === (roleFilter as UserRole));
+  }, [searchedUsers, roleFilter]);
+
+  // Start pagination fresh whenever the visible set changes shape.
+  useEffect(() => {
+    setDisplayedCount(4);
+  }, [search, roleFilter]);
 
   const displayedUsers = filteredUsers.slice(0, displayedCount);
 
@@ -107,9 +144,14 @@ export default function UsersPage() {
           title="User Management"
           subtitle="View account status, reset access, and manage user activity from a single place."
           actions={
-            <Button variant="secondary" onClick={() => navigate(ROUTES.CREATE_USER)}>
-              Create User
-            </Button>
+            <>
+              <Button variant="secondary" onClick={() => navigate(ROUTES.ADMIN)}>
+                Back to Admin
+              </Button>
+              <Button variant="secondary" onClick={() => navigate(ROUTES.CREATE_USER)}>
+                Create User
+              </Button>
+            </>
           }
         />
 
@@ -131,6 +173,25 @@ export default function UsersPage() {
                   />
                 </div>
               </div>
+
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                {ROLE_FILTERS.map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => setRoleFilter(role)}
+                    aria-pressed={roleFilter === role}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors ${
+                      roleFilter === role
+                        ? "border-temenos-navy bg-temenos-navy text-white"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {ROLE_LABELS[role]}
+                    <span className={roleFilter === role ? "opacity-80" : "text-slate-400"}>{roleCounts[role]}</span>
+                  </button>
+                ))}
+              </div>
             </Card>
 
             <Card className="p-6">
@@ -141,15 +202,19 @@ export default function UsersPage() {
           </div>
 
           <Card>
-            {error && <p className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700" role="alert">{error}</p>}
-            {success && <p className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700">{success}</p>}
+            {error && <Alert variant="error" className="mb-4">{error}</Alert>}
+            {success && <Alert variant="success" className="mb-4">{success}</Alert>}
 
             {loading ? (
-              <p className="text-sm text-slate-500">Loading users…</p>
+              <LoadingState message="Loading users…" inline />
             ) : filteredUsers.length === 0 ? (
               <EmptyState
                 title={users.length === 0 ? "No users found" : "No matching users"}
-                description={users.length === 0 ? "There are no user accounts yet." : "Try another search term to find users."}
+                description={
+                  users.length === 0
+                    ? "There are no user accounts yet."
+                    : "Try another search term or role filter to find users."
+                }
                 action={
                   <Button variant="secondary" onClick={() => navigate(ROUTES.CREATE_USER)}>
                     Create first user

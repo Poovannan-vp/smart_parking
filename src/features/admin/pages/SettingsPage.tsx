@@ -1,9 +1,14 @@
+import { useNavigate } from "react-router-dom";
+
+import { ROUTES } from "../../../app/routes";
 import Button from "../../../shared/components/Button";
 import Card from "../../../shared/components/Card";
 import PageContainer from "../../../shared/components/PageContainer";
 import PageHeader from "../../../shared/components/PageHeader";
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
+
   return (
     <PageContainer>
       <div className="mx-auto max-w-6xl space-y-8 py-8">
@@ -11,9 +16,14 @@ export default function SettingsPage() {
           title="Settings"
           subtitle="Configure portal preferences, security policies, and system access controls."
           actions={
-            <Button variant="secondary" onClick={() => window.location.reload()}>
-              Refresh status
-            </Button>
+            <>
+              <Button variant="secondary" onClick={() => navigate(ROUTES.ADMIN)}>
+                Back to Admin
+              </Button>
+              <Button variant="secondary" onClick={() => window.location.reload()}>
+                Refresh status
+              </Button>
+            </>
           }
         />
 

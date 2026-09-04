@@ -38,9 +38,9 @@ export default function Input({
           outline-none
           transition-all
           duration-150
-          focus:border-[#00A3E0]
+          focus:border-temenos-teal
           focus:ring-2
-          focus:ring-[#00A3E0]/20
+          focus:ring-temenos-teal/20
           disabled:bg-slate-100
           disabled:text-slate-500
           ${error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : ""}

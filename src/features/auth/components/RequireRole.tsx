@@ -5,6 +5,7 @@ import { ROUTES } from "../../../app/routes";
 import type { UserRole } from "../../../types/common";
 import useAuth from "../hooks/useAuth";
 import { getDashboardRoute } from "../services/authServices";
+import LoadingState from "../../../shared/components/LoadingState";
 
 export default function RequireRole({
   allowedRoles,
@@ -17,7 +18,11 @@ export default function RequireRole({
   const location = useLocation();
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-slate-500">Checking access...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingState message="Checking access..." />
+      </div>
+    );
   }
 
   if (!user) {

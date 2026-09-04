@@ -8,7 +8,7 @@ export default function PageContainer({
   children,
 }: Props) {
   return (
-    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+    <div className="animate-fade-in mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
       {children}
     </div>
   );

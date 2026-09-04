@@ -18,23 +18,23 @@ export default function LoginPage() {
               <Logo hideText={false} />
 
               <div>
-                <span className="text-xs font-bold uppercase tracking-[0.24em] text-[#00A3E0]">Internal Security Portal</span>
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#0F2042] sm:text-4xl">
+                <span className="text-xs font-bold uppercase tracking-[0.24em] text-temenos-teal">Internal Enterprise Portal</span>
+                <h1 className="mt-1 text-3xl font-bold tracking-tight text-temenos-navy sm:text-4xl">
                   Enterprise Parking Access
                 </h1>
                 <p className="mt-3 text-base leading-relaxed text-slate-600">
-                  Log in with your company credentials to access parking status, vehicle registration, and operational role dashboards.
+                  Sign in with your company credentials to view your office parking layout and access your role's dashboard.
                 </p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 pt-2">
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-5">
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Role Access</span>
-                  <p className="mt-2 text-sm font-semibold text-[#0F2042]">Employees, Security & Administrators</p>
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-temenos-teal">Role Access</span>
+                  <p className="mt-2 text-sm font-semibold text-temenos-navy">Employees, Security & Administrators</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-5">
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#00A3E0]">Live Operations</span>
-                  <p className="mt-2 text-sm font-semibold text-[#0F2042]">Real-time branch occupancy & vehicle logs</p>
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-temenos-teal">Live Operations</span>
+                  <p className="mt-2 text-sm font-semibold text-temenos-navy">Real-time parking slot status</p>
                 </div>
               </div>
             </div>
@@ -46,8 +46,8 @@ export default function LoginPage() {
           <Card className="w-full shadow-lg">
             <div className="mb-6 flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <p className="text-base font-bold text-[#0F2042]">Staff Login</p>
-                <p className="text-xs uppercase tracking-[0.2em] text-[#00A3E0]">Secure Authentication</p>
+                <p className="text-base font-bold text-temenos-navy">Staff Login</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-temenos-teal">Secure Authentication</p>
               </div>
               <Button variant="ghost" className="text-xs" onClick={() => navigate("/")}>
                 Back Home

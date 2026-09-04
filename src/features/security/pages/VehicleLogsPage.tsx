@@ -10,6 +10,8 @@ import PageHeader from "../../../shared/components/PageHeader";
 import EmptyState from "../../../shared/components/EmptyState";
 import LoadingState from "../../../shared/components/LoadingState";
 import StatusBadge from "../../../shared/components/StatusBadge";
+import Alert from "../../../shared/components/Alert";
+import Select from "../../../shared/components/Select";
 import useAuth from "../../auth/hooks/useAuth";
 import { ROUTES } from "../../../app/routes";
 import {
@@ -299,14 +301,14 @@ export default function VehicleLogsPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <label className="block text-sm font-semibold text-slate-700">
+              <label className="block text-sm font-semibold text-slate-800">
                 Date
                 <input
                   type="date"
                   value={logDate}
                   max={getVehicleLogDate()}
                   onChange={(event) => setLogDate(event.target.value)}
-                  className="mt-2 h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition duration-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                  className="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-temenos-teal focus:ring-2 focus:ring-temenos-teal/20"
                 />
               </label>
             </div>
@@ -333,7 +335,7 @@ export default function VehicleLogsPage() {
                       <div className="mt-4 flex flex-wrap gap-3">
                         <Button variant="secondary" onClick={() => void handleExit(log)} disabled={saving}>Mark Exit</Button>
                         <Button variant="secondary" onClick={() => beginEdit(log, "CORRECT")}>Edit details</Button>
-                        <Button variant="danger" onClick={() => beginEdit(log, "VOID")}>delete</Button>
+                        <Button variant="danger" onClick={() => beginEdit(log, "VOID")}>Void</Button>
                       </div>
                     )}
                   </li>
@@ -367,13 +369,18 @@ export default function VehicleLogsPage() {
           </form>
         ) : null}
 
-        {error && <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700" role="alert">{error}</div>}
-        {success && <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700">{success}</div>}
+        {error && <Alert variant="error">{error}</Alert>}
+        {success && <Alert variant="success">{success}</Alert>}
       </div>
     </PageContainer>
   );
 }
 
 function ParkingAreaSelect({ id, label, value, areas, onChange }: { id: string; label: string; value: keyof Parking | ""; areas: Array<keyof Parking>; onChange: (value: keyof Parking | "") => void }) {
-  return <div className="space-y-2"><label htmlFor={id} className="text-sm font-medium text-slate-700">{label}</label><select id={id} value={value} disabled={areas.length === 0} onChange={(event) => onChange(event.target.value as keyof Parking)} className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm disabled:bg-slate-100"><option value="">Select parking area</option>{areas.map((area) => <option key={area} value={area}>{parkingAreaLabels[area]}</option>)}</select></div>;
+  return (
+    <Select id={id} label={label} value={value} disabled={areas.length === 0} onChange={(event) => onChange(event.target.value as keyof Parking)}>
+      <option value="">Select parking area</option>
+      {areas.map((area) => <option key={area} value={area}>{parkingAreaLabels[area]}</option>)}
+    </Select>
+  );
 }
