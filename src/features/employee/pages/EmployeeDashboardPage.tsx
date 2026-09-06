@@ -21,6 +21,7 @@ import {
   type EmployeeVehicle,
   updateEmployeeVehicle,
 } from "../../../services/employeeVehicleService";
+import { getActiveLogForVehicle, type VehicleLog } from "../../../services/vehicleLogService";
 import { PhysicalLayoutView, LayoutSelector, useLocationLayouts, useLayout, useSlotStatuses } from "../../parking";
 
 export default function EmployeeDashboardPage() {
@@ -28,6 +29,7 @@ export default function EmployeeDashboardPage() {
   const [building, setBuilding] = useState<ManagedBuilding | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [vehicles, setVehicles] = useState<EmployeeVehicle[]>([]);
+  const [parkedStatus, setParkedStatus] = useState<Record<string, VehicleLog | null>>({});
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [vehicleType, setVehicleType] = useState<"CAR" | "BIKE">("CAR");
   const [vehicleFormError, setVehicleFormError] = useState<string | null>(null);
@@ -55,6 +57,31 @@ export default function EmployeeDashboardPage() {
       .then(setVehicles)
       .catch(() => setError("Unable to load registered vehicles."));
   }, [user?.uid]);
+
+  // "Where is my vehicle parked" - one lookup per registered plate, refreshed
+  // whenever the vehicle list changes. Missing from the result map (rather
+  // than null) means "not looked up yet", so the UI never briefly reports a
+  // vehicle as not parked while the real answer is still in flight.
+  useEffect(() => {
+    if (vehicles.length === 0 || !user?.uid) return;
+
+    let active = true;
+
+    void Promise.all(
+      vehicles.map((vehicle) =>
+        getActiveLogForVehicle(vehicle.registrationNumber, user.uid)
+          .then((log) => [vehicle.registrationNumber, log] as const)
+          .catch(() => [vehicle.registrationNumber, null] as const),
+      ),
+    ).then((results) => {
+      if (!active) return;
+      setParkedStatus(Object.fromEntries(results));
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [vehicles, user?.uid]);
 
   useEffect(() => {
     if (!user?.buildingId) {
@@ -87,7 +114,8 @@ export default function EmployeeDashboardPage() {
     setVehicleFormError(null);
 
     try {
-      await registerEmployeeVehicle(user.uid, vehicleNumber, vehicleType);
+      const employeeName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "Employee";
+      await registerEmployeeVehicle(user.uid, vehicleNumber, vehicleType, employeeName);
       setVehicleNumber("");
       setVehicleType("CAR");
       setVehicles(await getEmployeeVehicles(user.uid));
@@ -250,8 +278,17 @@ export default function EmployeeDashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    {vehicles.map((vehicle) => (
-                      <div key={vehicle.id} className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs">
+                    {vehicles.map((vehicle) => {
+                      const activeLog = parkedStatus[vehicle.registrationNumber];
+                      const parkedLocation = activeLog?.slotNumber
+                        ? `Slot ${activeLog.slotNumber}`
+                        : activeLog?.parkingArea
+                          ? parkingAreaLabel(activeLog.parkingArea)
+                          : null;
+
+                      return (
+                    <div key={vehicle.id} className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
                             <HiTruck className="h-5 w-5" />
@@ -270,7 +307,21 @@ export default function EmployeeDashboardPage() {
                           </Button>
                         </div>
                       </div>
-                    ))}
+
+                      {activeLog ? (
+                        <div className="mt-3 flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2">
+                          <div>
+                            <p className="text-xs font-bold text-emerald-800">
+                              Currently parked{parkedLocation ? ` · ${parkedLocation}` : ""}
+                            </p>
+                            <p className="text-[11px] text-emerald-700">Since {formatParkedTime(activeLog.loggedAt)}</p>
+                          </div>
+                          <StatusBadge variant="success">Parked</StatusBadge>
+                        </div>
+                      ) : null}
+                    </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -288,5 +339,25 @@ function ProfileItem({ label, value }: { label: string; value: string }) {
       <dt className="text-xs font-semibold text-slate-500">{label}</dt>
       <dd className="mt-1 text-sm font-bold text-temenos-navy truncate">{value}</dd>
     </div>
+  );
+}
+
+const parkingAreaLabels: Record<string, string> = {
+  closedBike: "Closed Bike",
+  closedCar: "Closed Car",
+  openCar: "Open Car",
+  general: "General",
+};
+
+function parkingAreaLabel(area: string) {
+  return parkingAreaLabels[area] ?? area;
+}
+
+function formatParkedTime(loggedAt?: VehicleLog["loggedAt"]) {
+  return (
+    loggedAt?.toDate().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }) ?? "just now"
   );
 }

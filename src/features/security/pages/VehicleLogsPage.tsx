@@ -52,10 +52,12 @@ export default function VehicleLogsPage() {
   const [buildings, setBuildings] = useState<BuildingOption[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
+  const [vehicleType, setVehicleType] = useState<"CAR" | "BIKE">("BIKE");
   const [parkingArea, setParkingArea] = useState<keyof Parking | "">("");
   const [availableParkingAreas, setAvailableParkingAreas] = useState<Array<keyof Parking>>([]);
   const [logDate, setLogDate] = useState(getVehicleLogDate);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "CAR" | "BIKE">("ALL");
   const [logs, setLogs] = useState<VehicleLog[]>([]);
   const [editingLog, setEditingLog] = useState<VehicleLog | null>(null);
   const [editAction, setEditAction] = useState<"CORRECT" | "VOID">("CORRECT");
@@ -127,8 +129,10 @@ export default function VehicleLogsPage() {
 
   const filteredLogs = useMemo(() => {
     const normalizedSearch = normalizeVehicleNumber(search);
-    return logs.filter((log) => log.vehicleNumber.includes(normalizedSearch));
-  }, [logs, search]);
+    return logs
+      .filter((log) => log.vehicleNumber.includes(normalizedSearch))
+      .filter((log) => typeFilter === "ALL" || log.vehicleType === typeFilter);
+  }, [logs, search, typeFilter]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,13 +149,14 @@ export default function VehicleLogsPage() {
       await createVehicleLog({
   buildingId: activeBuildingId,
   vehicleNumber,
+  vehicleType,
   parkingArea,
   loggedBy: user.uid,
   loggedByName: `${user.firstName} ${user.lastName}`.trim(),
   loggedByRole: user.role,
 });
       setVehicleNumber("");
-      setSuccess("Vehicle logged for today.");
+      setSuccess(`${vehicleType === "BIKE" ? "Bike" : "Car"} logged for today.`);
       await loadLogs();
     } catch (submitError) {
   console.error("Vehicle Log Error:", submitError);
@@ -259,12 +264,32 @@ export default function VehicleLogsPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-slate-500">New Gate Entry</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-900">Log a vehicle</h2>
+                <h2 className="mt-2 text-xl font-semibold text-slate-900">Log a {vehicleType === "BIKE" ? "bike" : "car"}</h2>
               </div>
               <div className="text-sm text-slate-500">{isDeveloper ? "Developer mode" : `Assigned building: ${activeBuildingName ?? "Loading..."}`}</div>
             </div>
 
-            <form className="mt-6 space-y-4" onSubmit={handleCreate}>
+            <div className="mt-4 flex gap-2">
+              {(["BIKE", "CAR"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setVehicleType(type)}
+                  className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                    vehicleType === type
+                      ? "border-temenos-teal bg-temenos-teal/10 text-temenos-teal-dark"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {type === "BIKE" ? "Bike" : "Car"}
+                </button>
+              ))}
+            </div>
+            {vehicleType === "BIKE" ? (
+              <p className="mt-2 text-xs text-slate-500">No physical layout for bikes — this logs the gate entry only, without assigning a slot.</p>
+            ) : null}
+
+            <form className="mt-4 space-y-4" onSubmit={handleCreate}>
               <Input
                 id="vehicleNumber"
                 label="Vehicle Number"
@@ -276,7 +301,7 @@ export default function VehicleLogsPage() {
               />
               <ParkingAreaSelect id="parkingArea" label="Parking Area" value={parkingArea} areas={availableParkingAreas} onChange={setParkingArea} />
               <Button fullWidth type="submit" disabled={saving || !activeBuildingId}>
-                {saving ? "Saving..." : "Log Vehicle"}
+                {saving ? "Saving..." : `Log ${vehicleType === "BIKE" ? "Bike" : "Car"}`}
               </Button>
             </form>
           </Card>
@@ -313,6 +338,23 @@ export default function VehicleLogsPage() {
               </label>
             </div>
 
+            <div className="mt-4 flex gap-2">
+              {(["ALL", "CAR", "BIKE"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setTypeFilter(type)}
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+                    typeFilter === type
+                      ? "border-temenos-navy bg-temenos-navy text-white"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {type === "ALL" ? "All" : type === "CAR" ? "Cars" : "Bikes"}
+                </button>
+              ))}
+            </div>
+
             {loading ? (
               <LoadingState message="Loading vehicle history..." />
             ) : filteredLogs.length === 0 ? (
@@ -323,8 +365,18 @@ export default function VehicleLogsPage() {
                   <li key={log.id} className="rounded-3xl border border-slate-200 p-4 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="text-lg font-semibold text-slate-900">{log.vehicleNumber}</p>
-                        <p className="mt-1 text-sm text-slate-500">{log.parkingArea ? parkingAreaLabels[log.parkingArea] : "Parking area not selected"} · {formatLoggedAt(log.loggedAt)}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-lg font-semibold text-slate-900">{log.vehicleNumber}</p>
+                          <StatusBadge variant={log.vehicleType === "BIKE" ? "warning" : "info"}>
+                            {log.vehicleType === "BIKE" ? "Bike" : "Car"}
+                          </StatusBadge>
+                        </div>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {log.parkingArea ? parkingAreaLabels[log.parkingArea] : log.slotNumber ? `Slot ${log.slotNumber}` : "Parking area not selected"} · {formatLoggedAt(log.loggedAt)}
+                        </p>
+                        <p className="mt-0.5 text-xs font-medium text-slate-500">
+                          {log.ownership === "UNREGISTERED" ? "Unregistered vehicle" : log.employeeName ? `Registered to ${log.employeeName}` : "Registered vehicle"}
+                        </p>
                       </div>
                       <StatusBadge variant={log.status === "EXITED" ? "info" : log.status === "VOID" ? "warning" : "success"}>
                         {log.status ?? "ACTIVE"}

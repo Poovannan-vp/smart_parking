@@ -158,6 +158,12 @@ export interface SlotStatusEntry {
   status: SlotStatusValue;
   updatedAt?: unknown;
   updatedBy?: string;
+  /** Set together with OCCUPIED when the occupying vehicle is known, so the map and the log stay in sync without an extra query. */
+  vehicleNumber?: string;
+  vehicleType?: "CAR" | "BIKE";
+  employeeName?: string;
+  /** The vehicleLogs document this occupancy came from - lets "free this slot" resolve straight to exitVehicleLog. */
+  logId?: string;
 }
 
 /**

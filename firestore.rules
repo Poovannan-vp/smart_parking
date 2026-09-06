@@ -62,7 +62,20 @@ service cloud.firestore {
     }
 
     match /vehicleLogs/{logId} {
-      allow read: if isAdmin() || isDeveloper() || isSecurityFor(resource.data.buildingId);
+      // `resource` is null when the document doesn't exist yet - and
+      // createVehicleLog's transaction always reads the doc first (by its
+      // deterministic buildingId_date_vehicleNumber id) to enforce "not
+      // already logged today" before writing. For a brand-new plate that
+      // read is of a non-existent doc, so `resource == null` must be
+      // allowed through for Security - there is no buildingId to check
+      // against yet. Once the doc exists, the real per-building scoping
+      // below still applies to reading it.
+      // The Employee dashboard's "where is my vehicle parked" lookup
+      // (getActiveLogForVehicle) queries this collection directly - an
+      // employee needs to read a log that's about their own vehicle, but
+      // never anyone else's. Scoped to logs already carrying their uid as
+      // employeeId, set automatically by createVehicleLog's owner match.
+      allow read: if isAdmin() || isDeveloper() || (isSecurity() && (resource == null || assignedBuilding() == resource.data.buildingId)) || (signedIn() && resource.data.employeeId == request.auth.uid);
       allow create: if isAdmin() || isDeveloper() || isSecurityFor(request.resource.data.buildingId);
       allow update, delete: if isAdmin() || isDeveloper() || (
         isSecurityFor(resource.data.buildingId) &&
@@ -77,7 +90,11 @@ service cloud.firestore {
     }
 
     match /employeeVehicles/{vehicleId} {
-      allow read: if isAdmin() || isDeveloper() || (signedIn() && resource.data.userId == request.auth.uid);
+      // Security needs read access to look up a plate against the
+      // registered-vehicle directory when logging a gate entry (see
+      // vehicleLogService.findVehicleOwner / getVehicleDirectory) - it
+      // never writes to this collection.
+      allow read: if isAdmin() || isDeveloper() || isSecurity() || (signedIn() && resource.data.userId == request.auth.uid);
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin() || isDeveloper() || (signedIn() && resource.data.userId == request.auth.uid);
     }

@@ -8,8 +8,9 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 
-import { auth, userManagementAuth } from "../config/firebase";
+import { auth, functions, userManagementAuth } from "../config/firebase";
 import { db } from "../config/firestore";
 import type { UserRole } from "../types/common";
 
@@ -83,4 +84,19 @@ export async function deleteManagedUser(userId: string) {
 
 export async function sendManagedUserPasswordReset(email: string) {
   await sendPasswordResetEmail(auth, email);
+}
+
+/**
+ * Sets another user's password directly via the setUserPassword Cloud
+ * Function - the client SDK can only ever change the signed-in user's own
+ * password, so this always goes through a server-side Admin SDK call. The
+ * function independently re-verifies the caller is an Admin/Developer from
+ * Firestore; it never trusts the client for that.
+ */
+export async function setManagedUserPassword(targetUid: string, newPassword: string) {
+  const callSetUserPassword = httpsCallable<{ targetUid: string; newPassword: string }, { success: boolean }>(
+    functions,
+    "setUserPassword",
+  );
+  await callSetUserPassword({ targetUid, newPassword });
 }

@@ -54,13 +54,17 @@ export default function AdminDashboardPage() {
     if (!analytics) return;
 
     const rows = [
-      "Vehicle Number,Building,Parking Area,Status,Date",
+      "Vehicle Number,Type,Owner,Building,Parking Area,Slot,Status,Date,Time",
       ...analytics.logs.map((log) => [
         log.vehicleNumber,
+        log.vehicleType === "BIKE" ? "Bike" : "Car",
+        log.ownership === "REGISTERED" ? (log.employeeName ?? "Registered") : "Unregistered",
         log.buildingId,
         log.parkingArea ?? "",
+        log.slotNumber ?? "",
         log.status ?? "ACTIVE",
         log.logDate,
+        log.loggedAt?.toDate().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) ?? "",
       ].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")),
     ];
 
@@ -129,6 +133,8 @@ export default function AdminDashboardPage() {
                 <Metric label="Exited vehicles" value={analytics.exitedVehicles} />
                 <Metric label="Voided logs" value={analytics.voidedVehicles} />
                 <Metric label="Spaces free" value={totalAvailable} />
+                <Metric label="Cars / Bikes" value={analytics.carLogs} secondaryValue={analytics.bikeLogs} />
+                <Metric label="Registered / Unregistered" value={analytics.registeredVehicles} secondaryValue={analytics.unregisteredVehicles} />
               </div>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
@@ -166,11 +172,14 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value, secondaryValue }: { label: string; value: number; secondaryValue?: number }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-900">
+        {value}
+        {secondaryValue !== undefined ? <span className="text-base font-medium text-slate-400"> / {secondaryValue}</span> : null}
+      </p>
     </div>
   );
 }
