@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiMapPin, HiUser, HiShieldCheck, HiCog6Tooth } from "react-icons/hi2";
 
@@ -5,6 +6,13 @@ import Button from "../../../shared/components/Button";
 import Header from "../../../shared/components/Header";
 import { ROUTES } from "../../../app/routes";
 import { ParkingPreviewGraphic } from "../components/ParkingPreviewGraphic";
+
+// three.js is ~500KB - split into its own chunk so every other route
+// (Login, Security, Admin...) never pays for it, only the Home page does,
+// and only once this section actually scrolls into view territory.
+const ParkingScene3D = lazy(() =>
+  import("../components/ParkingScene3D").then((module) => ({ default: module.ParkingScene3D })),
+);
 
 const STEPS = [
   {
@@ -149,6 +157,29 @@ export default function HomePage() {
               <div className="rounded-2xl border border-temenos-border bg-temenos-bg p-6 sm:p-8">
                 <ParkingPreviewGraphic showLegend />
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 3D Preview (demo) */}
+        <section className="border-y border-temenos-border bg-temenos-bg">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+            <div className="max-w-md">
+              <span className="inline-flex items-center rounded-full border border-temenos-teal/30 bg-temenos-teal-light px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-temenos-teal-dark">
+                3D Preview · Demo
+              </span>
+              <h2 className="mt-4 text-2xl font-bold tracking-tight text-temenos-navy sm:text-3xl">
+                A first look at three.js
+              </h2>
+              <p className="mt-3 text-slate-600">
+                A small proof-of-concept for a real 3D parking layout preview.
+              </p>
+            </div>
+
+            <div className="mt-8 h-72 overflow-hidden rounded-2xl border border-temenos-border bg-white sm:h-96">
+              <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-slate-400">Loading 3D preview...</div>}>
+                <ParkingScene3D />
+              </Suspense>
             </div>
           </div>
         </section>

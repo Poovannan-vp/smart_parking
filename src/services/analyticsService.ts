@@ -12,6 +12,10 @@ export interface AdminAnalytics {
   activeVehicles: number;
   exitedVehicles: number;
   voidedVehicles: number;
+  carLogs: number;
+  bikeLogs: number;
+  registeredVehicles: number;
+  unregisteredVehicles: number;
   logs: VehicleLog[];
 }
 
@@ -46,6 +50,10 @@ export async function getAdminAnalytics(logDate: string): Promise<AdminAnalytics
     activeVehicles: logs.filter((log) => (log.status ?? "ACTIVE") === "ACTIVE").length,
     exitedVehicles: logs.filter((log) => log.status === "EXITED").length,
     voidedVehicles: logs.filter((log) => log.status === "VOID").length,
+    carLogs: logs.filter((log) => log.vehicleType !== "BIKE").length,
+    bikeLogs: logs.filter((log) => log.vehicleType === "BIKE").length,
+    registeredVehicles: logs.filter((log) => log.ownership === "REGISTERED").length,
+    unregisteredVehicles: logs.filter((log) => log.ownership !== "REGISTERED").length,
     logs,
   };
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   HiBuildingOffice2,
@@ -16,7 +16,6 @@ import {
 import { ROUTES } from "../../app/routes";
 import useAuth from "../../features/auth/hooks/useAuth";
 import Header from "../components/Header";
-import Logo from "../components/Logo";
 
 const navItems = [
   { label: "Employee Portal", path: ROUTES.EMPLOYEE, icon: HiHome, roles: ["EMPLOYEE", "DEVELOPER"] },
@@ -41,6 +40,32 @@ export default function DashboardLayout() {
   const usersSectionActive = location.pathname.startsWith(ROUTES.USERS);
   const [usersMenuOpen, setUsersMenuOpen] = useState(usersSectionActive);
 
+  useEffect(() => {
+    if (usersSectionActive) setUsersMenuOpen(true);
+  }, [usersSectionActive]);
+
+  // Close the mobile drawer on every route change, and never leave it open
+  // (with the body scroll locked) once the user has navigated away.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setSidebarOpen(false);
+    }
+
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [sidebarOpen]);
+
   async function handleLogout() {
     await logout();
     navigate(ROUTES.LOGIN, { replace: true });
@@ -57,30 +82,32 @@ export default function DashboardLayout() {
         variant="authenticated"
         userName={userName}
         userRole={userRole}
+        sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((current) => !current)}
         onLogout={handleLogout}
       />
 
-      <div className="lg:flex">
-        {/* Mobile-only backdrop - the sidebar is a persistent rail at lg: and up, so nothing to dim behind it there. */}
+      <div>
+        {/* Backdrop - dims the page behind the drawer at every screen size; the drawer is always an on-demand overlay, never a pinned rail. */}
         <div
-          className={`fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 lg:hidden ${
+          className={`fixed inset-0 z-30 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 ${
             sidebarOpen ? "visible opacity-100" : "invisible opacity-0"
           }`}
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
 
-        {/* Drawer on mobile (toggled, overlays content); persistent in-flow rail from lg: up. */}
+        {/* Drawer - hidden off-canvas until the hamburger opens it, on mobile and desktop alike. */}
         <aside
-          className={`fixed left-0 top-0 z-50 h-full w-[300px] overflow-y-auto border-r border-slate-200 bg-white p-6 shadow-2xl transition-transform duration-300 lg:sticky lg:top-16 lg:z-auto lg:h-[calc(100vh-4rem)] lg:shrink-0 lg:translate-x-0 lg:shadow-none lg:transition-none ${
+          className={`fixed left-0 top-0 z-50 h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white p-5 shadow-2xl transition-transform duration-300 sm:w-[300px] ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-5">
-            <Logo hideText={false} />
+          <div className="flex items-center justify-between gap-3 pb-4">
+            <span className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Menu</span>
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 lg:hidden"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-temenos-teal"
               onClick={() => setSidebarOpen(false)}
               aria-label="Close navigation"
             >
@@ -88,7 +115,7 @@ export default function DashboardLayout() {
             </button>
           </div>
 
-          <nav className="mt-6 space-y-1.5">
+          <nav className="space-y-1.5 border-t border-slate-100 pt-4">
             {availableNav.map((item) => {
               const Icon = item.icon;
               const active = location.pathname === item.path;
@@ -153,12 +180,10 @@ export default function DashboardLayout() {
           </nav>
         </aside>
 
-        <div className="min-w-0 flex-1">
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            <main className="space-y-6">
-              <Outlet />
-            </main>
-          </div>
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <main className="space-y-6">
+            <Outlet />
+          </main>
         </div>
       </div>
     </div>

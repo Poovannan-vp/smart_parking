@@ -20,7 +20,8 @@ import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../config/firestore";
 import type { SlotStatusEntry, SlotStatusValue } from "../types/parkingLayout";
 
-function statusDoc(locationId: string, layoutId: string) {
+/** Exported so services that must update slot status inside their own transaction (e.g. vehicleLogService, keeping a log and its slot's occupancy atomic) can address the same document without duplicating this path. */
+export function statusDoc(locationId: string, layoutId: string) {
   return doc(db, "buildings", locationId, "layouts", layoutId, "status", "current");
 }
 
@@ -53,6 +54,12 @@ export function subscribeToSlotStatuses(
  * (before the status document exists at all) succeeds the same way a
  * later change does - merge recursively preserves every other slot's
  * entry under `slots`, it does not replace the whole map.
+ *
+ * Only used for the vehicle-free AVAILABLE/BLOCKED transitions - marking a
+ * slot OCCUPIED with a vehicle, or freeing it again, goes through
+ * vehicleLogService (createVehicleLog/exitVehicleLog) instead, so the log
+ * and the slot's status change together. Any vehicle fields left over from
+ * a previous occupancy are cleared here defensively.
  */
 export async function setSlotStatus(
   locationId: string,
@@ -69,6 +76,10 @@ export async function setSlotStatus(
           status,
           updatedAt: serverTimestamp(),
           updatedBy,
+          vehicleNumber: null,
+          vehicleType: null,
+          logId: null,
+          employeeName: null,
         },
       },
     },

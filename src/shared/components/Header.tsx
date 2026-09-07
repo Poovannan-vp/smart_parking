@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { HiBars3, HiXMark } from "react-icons/hi2";
 import Button from "./Button";
@@ -10,6 +10,7 @@ interface HeaderProps {
   variant?: "public" | "authenticated";
   userName?: string;
   userRole?: string;
+  sidebarOpen?: boolean;
   onToggleSidebar?: () => void;
   onLogout?: () => void;
 }
@@ -18,13 +19,36 @@ export default function Header({
   variant = "authenticated",
   userName,
   userRole,
+  sidebarOpen = false,
   onToggleSidebar,
   onLogout,
 }: HeaderProps) {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
   const isPublic = variant === "public" || (!userName && !userRole);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   const handleHomeClick = () => {
     if (window.location.pathname === "/") {
@@ -48,7 +72,7 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md transition-all">
+    <header ref={navRef} className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md transition-all">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Left section */}
         <div className="flex items-center gap-3">
@@ -56,10 +80,11 @@ export default function Header({
             <button
               type="button"
               onClick={onToggleSidebar}
-              aria-label="Toggle navigation drawer"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-temenos-teal lg:hidden"
+              aria-label={sidebarOpen ? "Close navigation drawer" : "Open navigation drawer"}
+              aria-expanded={sidebarOpen}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-temenos-teal"
             >
-              <HiBars3 className="h-5 w-5" />
+              {sidebarOpen ? <HiXMark className="h-5 w-5" /> : <HiBars3 className="h-5 w-5" />}
             </button>
           ) : null}
 
@@ -127,8 +152,9 @@ export default function Header({
             <button
               type="button"
               onClick={() => setMobileMenuOpen((curr) => !curr)}
-              aria-label="Toggle mobile menu"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-temenos-teal"
             >
               {mobileMenuOpen ? <HiXMark className="h-6 w-6" /> : <HiBars3 className="h-6 w-6" />}
             </button>
@@ -137,16 +163,20 @@ export default function Header({
       </div>
 
       {/* Mobile dropdown menu for Public */}
-      {isPublic && mobileMenuOpen ? (
-        <div className="border-b border-slate-200 bg-white px-4 py-4 md:hidden">
-          <div className="flex flex-col gap-3 text-sm font-medium">
+      {isPublic ? (
+        <div
+          className={`overflow-hidden border-b border-slate-200 bg-white transition-all duration-300 ease-out md:hidden ${
+            mobileMenuOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="flex flex-col gap-1 px-4 py-4 text-sm font-medium">
             <button
               type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
                 handleHomeClick();
               }}
-              className="text-left py-2 text-slate-700 hover:text-temenos-teal"
+              className="rounded-lg px-2 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 hover:text-temenos-teal"
             >
               Home
             </button>
@@ -156,12 +186,19 @@ export default function Header({
                 setMobileMenuOpen(false);
                 handleHowItWorksClick();
               }}
-              className="text-left py-2 text-slate-700 hover:text-temenos-teal"
+              className="rounded-lg px-2 py-2.5 text-left text-slate-700 transition hover:bg-slate-50 hover:text-temenos-teal"
             >
               How It Works
             </button>
-            <div className="pt-2 flex flex-col gap-2">
-              <Button variant="teal" fullWidth onClick={() => navigate(ROUTES.LOGIN)}>
+            <div className="pt-2">
+              <Button
+                variant="teal"
+                fullWidth
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate(ROUTES.LOGIN);
+                }}
+              >
                 Login
               </Button>
             </div>
@@ -171,4 +208,3 @@ export default function Header({
     </header>
   );
 }
-

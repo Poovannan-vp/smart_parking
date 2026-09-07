@@ -67,9 +67,14 @@ export function useSlotStatuses(locationId: string | undefined, layoutId: string
     return statuses[slotId]?.status ?? "AVAILABLE";
   }
 
+  function getEntry(slotId: string): SlotStatusEntry | undefined {
+    return statuses[slotId];
+  }
+
   return {
     statuses,
     getStatus,
+    getEntry,
     loading: !isCurrent || state.loading,
     error: isCurrent ? state.error : null,
   };

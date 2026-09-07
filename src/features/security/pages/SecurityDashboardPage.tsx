@@ -16,6 +16,8 @@ import {
   type BuildingOption,
 } from "../../../services/buildingService";
 import { setSlotStatus } from "../../../services/slotStatusService";
+import { getVehicleDirectory, type VehicleDirectoryEntry } from "../../../services/employeeVehicleService";
+import { createVehicleLog } from "../../../services/vehicleLogService";
 import type { ParkingSlot, SlotStatusValue } from "../../../types/parkingLayout";
 
 import useParking from "../hooks/useParking";
@@ -59,7 +61,20 @@ export default function SecurityDashboardPage() {
   const [selectedLayoutId, setSelectedLayoutId] = useState("");
   const { layouts } = useLocationLayouts(selectedBuilding || undefined);
   const { layout } = useLayout(selectedBuilding || undefined, selectedLayoutId || undefined);
-  const { getStatus } = useSlotStatuses(selectedBuilding || undefined, selectedLayoutId || undefined);
+  const { getStatus, getEntry } = useSlotStatuses(selectedBuilding || undefined, selectedLayoutId || undefined);
+
+  const [vehicleDirectory, setVehicleDirectory] = useState<VehicleDirectoryEntry[]>([]);
+
+  useEffect(() => {
+    if (!selectedBuilding) {
+      setVehicleDirectory([]);
+      return;
+    }
+
+    void getVehicleDirectory(selectedBuilding)
+      .then(setVehicleDirectory)
+      .catch(() => setVehicleDirectory([]));
+  }, [selectedBuilding]);
 
   useEffect(() => {
     if (layouts.length === 0) return;
@@ -89,6 +104,49 @@ export default function SecurityDashboardPage() {
       setSelectedSlot(null);
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : "Unable to update slot status.");
+    } finally {
+      setSavingStatus(false);
+    }
+  }
+
+  async function handleOccupy({ vehicleNumber, vehicleType }: { vehicleNumber: string; vehicleType: "CAR" | "BIKE" }) {
+    if (!selectedSlot || !selectedBuilding || !selectedLayoutId || !user) return;
+
+    setSavingStatus(true);
+    setStatusError(null);
+
+    try {
+      await createVehicleLog({
+        buildingId: selectedBuilding,
+        vehicleNumber,
+        vehicleType,
+        slotId: selectedSlot.id,
+        slotNumber: selectedSlot.slotNumber,
+        layoutId: selectedLayoutId,
+        loggedBy: user.uid,
+        loggedByName: `${user.firstName} ${user.lastName}`.trim(),
+        loggedByRole: user.role,
+      });
+      setSelectedSlot(null);
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Unable to log this vehicle.");
+      throw err;
+    } finally {
+      setSavingStatus(false);
+    }
+  }
+
+  async function handleFree() {
+    if (!selectedSlot || !selectedBuilding || !selectedLayoutId || !user) return;
+
+    setSavingStatus(true);
+    setStatusError(null);
+
+    try {
+      await setSlotStatus(selectedBuilding, selectedLayoutId, selectedSlot.id, "AVAILABLE", user.uid);
+      setSelectedSlot(null);
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Unable to free this slot.");
     } finally {
       setSavingStatus(false);
     }
@@ -166,9 +224,13 @@ export default function SecurityDashboardPage() {
                   <PhysicalLayoutView
                     slots={layout?.slots ?? []}
                     getSlotStatus={getStatus}
+                    getSlotEntry={getEntry}
                     onSlotClick={setSelectedSlot}
                     selectedSlot={selectedSlot}
                     onStatusChange={(status) => void handleSetStatus(status)}
+                    onOccupy={handleOccupy}
+                    onFree={handleFree}
+                    vehicleDirectory={vehicleDirectory}
                     savingStatus={savingStatus}
                     statusError={statusError}
                     onClosePopover={() => setSelectedSlot(null)}

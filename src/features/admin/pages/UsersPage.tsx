@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Button from "../../../shared/components/Button";
 import Card from "../../../shared/components/Card";
 import EmptyState from "../../../shared/components/EmptyState";
 import Input from "../../../shared/components/Input";
+import Select from "../../../shared/components/Select";
+import Modal from "../../../shared/components/Modal";
 import PageContainer from "../../../shared/components/PageContainer";
 import PageHeader from "../../../shared/components/PageHeader";
 import StatusBadge from "../../../shared/components/StatusBadge";
@@ -15,11 +17,16 @@ import {
   getManagedUsers,
   sendManagedUserPasswordReset,
   setManagedUserActive,
+  setManagedUserPassword,
+  updateManagedUser,
   type ManagedUser,
 } from "../../../services/userService";
+import { getBuildings, type BuildingOption } from "../../../services/buildingService";
 import LoadMoreButton from "../../../components/LoadMoreButton";
 import { ROUTES } from "../../../app/routes";
 import type { UserRole } from "../../../types/common";
+
+const EDITABLE_ROLES: UserRole[] = ["EMPLOYEE", "SECURITY", "ADMIN", "DEVELOPER"];
 
 const ROLE_FILTERS = ["ALL", "EMPLOYEE", "SECURITY", "ADMIN", "DEVELOPER"] as const;
 type RoleFilter = (typeof ROLE_FILTERS)[number];
@@ -42,6 +49,24 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const [displayedCount, setDisplayedCount] = useState<number>(4);
 
+  const [buildings, setBuildings] = useState<BuildingOption[]>([]);
+  const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const [editDraft, setEditDraft] = useState({
+    firstName: "",
+    lastName: "",
+    employeeId: "",
+    role: "EMPLOYEE" as UserRole,
+    buildingId: "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
   async function loadUsers() {
     setLoading(true);
     setError(null);
@@ -57,7 +82,82 @@ export default function UsersPage() {
 
   useEffect(() => {
     void loadUsers();
+    void getBuildings().then(setBuildings).catch(() => setBuildings([]));
   }, []);
+
+  function beginEdit(user: ManagedUser) {
+    setEditingUser(user);
+    setEditDraft({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      employeeId: user.employeeId,
+      role: user.role,
+      buildingId: user.buildingId,
+    });
+    setEditError(null);
+    setEditSuccess(null);
+    setNewPassword("");
+    setPasswordError(null);
+    setPasswordSuccess(null);
+  }
+
+  function closeEdit() {
+    setEditingUser(null);
+  }
+
+  async function handleSaveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingUser) return;
+
+    if (!editDraft.firstName.trim() || !editDraft.lastName.trim()) {
+      setEditError("First and last name are required.");
+      return;
+    }
+
+    setEditSaving(true);
+    setEditError(null);
+    setEditSuccess(null);
+
+    try {
+      await updateManagedUser(editingUser.id, {
+        firstName: editDraft.firstName.trim(),
+        lastName: editDraft.lastName.trim(),
+        employeeId: editDraft.employeeId.trim(),
+        role: editDraft.role,
+        buildingId: editDraft.buildingId,
+      });
+      setEditSuccess("Profile updated.");
+      await loadUsers();
+    } catch {
+      setEditError("Unable to save changes.");
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function handleSetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingUser) return;
+
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters.");
+      return;
+    }
+
+    setPasswordSaving(true);
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    try {
+      await setManagedUserPassword(editingUser.id, newPassword);
+      setPasswordSuccess("Password updated.");
+      setNewPassword("");
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : "Unable to set the new password.");
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
 
   // Text search narrows first; the role filter then narrows further. Chip
   // counts are computed from this so they reflect live search matches per
@@ -246,6 +346,7 @@ export default function UsersPage() {
                           <p className="mt-2">{user.role}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          <Button variant="secondary" onClick={() => beginEdit(user)}>Edit</Button>
                           <Button variant="secondary" onClick={() => void handleResetPassword(user.email)}>Reset password</Button>
                           <Button variant={user.active ? "danger" : "secondary"} onClick={() => void handleToggleActive(user)}>
                             {user.active ? "Deactivate" : "Activate"}
@@ -262,6 +363,94 @@ export default function UsersPage() {
           </Card>
         </div>
       </div>
+
+      <Modal open={Boolean(editingUser)} onClose={closeEdit} title={editingUser ? `Edit ${editingUser.firstName} ${editingUser.lastName}` : "Edit user"}>
+        {editingUser ? (
+          <div className="space-y-6">
+            <form className="space-y-4" onSubmit={handleSaveEdit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  id="editFirstName"
+                  label="First Name"
+                  value={editDraft.firstName}
+                  onChange={(event) => setEditDraft((current) => ({ ...current, firstName: event.target.value }))}
+                  required
+                />
+                <Input
+                  id="editLastName"
+                  label="Last Name"
+                  value={editDraft.lastName}
+                  onChange={(event) => setEditDraft((current) => ({ ...current, lastName: event.target.value }))}
+                  required
+                />
+              </div>
+
+              <Input
+                id="editEmployeeId"
+                label="Employee ID"
+                value={editDraft.employeeId}
+                onChange={(event) => setEditDraft((current) => ({ ...current, employeeId: event.target.value }))}
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Select
+                  id="editRole"
+                  label="Role"
+                  value={editDraft.role}
+                  onChange={(event) => setEditDraft((current) => ({ ...current, role: event.target.value as UserRole }))}
+                >
+                  {EDITABLE_ROLES.map((role) => (
+                    <option key={role} value={role}>{ROLE_LABELS[role]}</option>
+                  ))}
+                </Select>
+
+                <Select
+                  id="editBuilding"
+                  label="Assigned Building"
+                  value={editDraft.buildingId}
+                  onChange={(event) => setEditDraft((current) => ({ ...current, buildingId: event.target.value }))}
+                >
+                  <option value="">None</option>
+                  {buildings.map((building) => (
+                    <option key={building.id} value={building.id}>{building.name}</option>
+                  ))}
+                </Select>
+              </div>
+
+              {editError ? <Alert variant="error">{editError}</Alert> : null}
+              {editSuccess ? <Alert variant="success">{editSuccess}</Alert> : null}
+
+              <Button type="submit" fullWidth disabled={editSaving}>
+                {editSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </form>
+
+            <form className="space-y-4 border-t border-slate-100 pt-6" onSubmit={handleSetPassword}>
+              <div>
+                <p className="text-sm font-bold text-temenos-navy">Set New Password</p>
+                <p className="mt-1 text-xs text-slate-500">Sets the account's password directly - the user isn't notified. Use "Reset password" instead to email them a reset link.</p>
+              </div>
+
+              <Input
+                id="newPassword"
+                label="New Password"
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="At least 8 characters"
+                required
+              />
+
+              {passwordError ? <Alert variant="error">{passwordError}</Alert> : null}
+              {passwordSuccess ? <Alert variant="success">{passwordSuccess}</Alert> : null}
+
+              <Button type="submit" variant="secondary" fullWidth disabled={passwordSaving}>
+                {passwordSaving ? "Saving..." : "Set Password"}
+              </Button>
+            </form>
+          </div>
+        ) : null}
+      </Modal>
     </PageContainer>
   );
 }

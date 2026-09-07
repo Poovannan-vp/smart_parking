@@ -35,3 +35,5 @@ firestore-debug.log
 ui-debug.log
 database-debug.log
 pubsub-debug.log
+functions-debug.log
+functions/lib
