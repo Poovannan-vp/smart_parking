@@ -6,6 +6,8 @@ import { normalizeVehicleNumber } from "./vehicleUtils";
 export interface EmployeeVehicle {
   id: string;
   userId: string;
+  /** Location snapshot added for building-scoped security lookups. Legacy records may not have it. */
+  buildingId?: string;
   registrationNumber: string;
   vehicleType: "CAR" | "BIKE";
   /** Snapshot of the owner's display name at registration time, so a lookup by plate (e.g. Security logging a gate entry) never needs a second read of `users/{uid}`. */
@@ -18,6 +20,7 @@ export interface VehicleDirectoryEntry {
   vehicleType: "CAR" | "BIKE";
   userId: string;
   employeeName: string;
+  buildingId: string;
 }
 
 export async function getEmployeeVehicles(userId: string): Promise<EmployeeVehicle[]> {
@@ -27,6 +30,7 @@ export async function getEmployeeVehicles(userId: string): Promise<EmployeeVehic
 
 export async function registerEmployeeVehicle(
   userId: string,
+  buildingId: string,
   registrationNumber: string,
   vehicleType: "CAR" | "BIKE",
   employeeName: string,
@@ -35,6 +39,7 @@ export async function registerEmployeeVehicle(
   if (normalizedNumber.length < 4) throw new Error("Enter a valid vehicle number.");
   await addDoc(collection(db, "employeeVehicles"), {
     userId,
+    buildingId,
     registrationNumber: normalizedNumber,
     vehicleType,
     employeeName,
@@ -42,10 +47,16 @@ export async function registerEmployeeVehicle(
   });
 }
 
-export async function updateEmployeeVehicle(vehicleId: string, registrationNumber: string, vehicleType: "CAR" | "BIKE") {
+export async function updateEmployeeVehicle(
+  vehicleId: string,
+  buildingId: string,
+  registrationNumber: string,
+  vehicleType: "CAR" | "BIKE",
+) {
   const normalizedNumber = normalizeVehicleNumber(registrationNumber);
   if (normalizedNumber.length < 4) throw new Error("Enter a valid vehicle number.");
   await updateDoc(doc(db, "employeeVehicles", vehicleId), {
+    buildingId,
     registrationNumber: normalizedNumber,
     vehicleType,
     updatedAt: serverTimestamp(),
@@ -57,14 +68,14 @@ export async function deleteEmployeeVehicle(vehicleId: string) {
 }
 
 /**
- * The full registered-vehicle directory, for Security's gate-entry typeahead.
- * The dataset is company-wide vehicle registrations, not per-building, so
- * there is no server-side filter to apply here - callers filter client-side
- * as the user types. Kept as its own read (rather than folded into a
- * per-keystroke query) because the collection is expected to stay small.
+ * The registered-vehicle directory for one building, used by Security's
+ * gate-entry typeahead. The building snapshot is sourced from the employee's
+ * assigned user record when the vehicle is registered.
  */
-export async function getVehicleDirectory(): Promise<VehicleDirectoryEntry[]> {
-  const snapshot = await getDocs(collection(db, "employeeVehicles"));
+export async function getVehicleDirectory(buildingId: string): Promise<VehicleDirectoryEntry[]> {
+  const snapshot = await getDocs(
+    query(collection(db, "employeeVehicles"), where("buildingId", "==", buildingId)),
+  );
   return snapshot.docs.map((document) => {
     const data = document.data() as Omit<EmployeeVehicle, "id">;
     return {
@@ -72,15 +83,20 @@ export async function getVehicleDirectory(): Promise<VehicleDirectoryEntry[]> {
       vehicleType: data.vehicleType,
       userId: data.userId,
       employeeName: data.employeeName || "Unnamed employee",
+      buildingId: data.buildingId!,
     };
   });
 }
 
 /** A single plate lookup, used when Security logs a vehicle to decide REGISTERED vs UNREGISTERED. */
-export async function findVehicleOwner(registrationNumber: string): Promise<VehicleDirectoryEntry | null> {
+export async function findVehicleOwner(registrationNumber: string, buildingId: string): Promise<VehicleDirectoryEntry | null> {
   const normalizedNumber = normalizeVehicleNumber(registrationNumber);
   const snapshot = await getDocs(
-    query(collection(db, "employeeVehicles"), where("registrationNumber", "==", normalizedNumber)),
+    query(
+      collection(db, "employeeVehicles"),
+      where("registrationNumber", "==", normalizedNumber),
+      where("buildingId", "==", buildingId),
+    ),
   );
 
   if (snapshot.empty) return null;
@@ -91,5 +107,6 @@ export async function findVehicleOwner(registrationNumber: string): Promise<Vehi
     vehicleType: data.vehicleType,
     userId: data.userId,
     employeeName: data.employeeName || "Unnamed employee",
+    buildingId: data.buildingId!,
   };
 }

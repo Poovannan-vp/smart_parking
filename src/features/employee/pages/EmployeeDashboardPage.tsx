@@ -115,7 +115,7 @@ export default function EmployeeDashboardPage() {
 
     try {
       const employeeName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "Employee";
-      await registerEmployeeVehicle(user.uid, vehicleNumber, vehicleType, employeeName);
+      await registerEmployeeVehicle(user.uid, user.buildingId, vehicleNumber, vehicleType, employeeName);
       setVehicleNumber("");
       setVehicleType("CAR");
       setVehicles(await getEmployeeVehicles(user.uid));
@@ -130,7 +130,7 @@ export default function EmployeeDashboardPage() {
     setVehicleFormError(null);
 
     try {
-      await updateEmployeeVehicle(editingVehicle.id, editingVehicle.registrationNumber, editingVehicle.vehicleType);
+      await updateEmployeeVehicle(editingVehicle.id, user.buildingId, editingVehicle.registrationNumber, editingVehicle.vehicleType);
       setEditingVehicle(null);
       setVehicles(await getEmployeeVehicles(user.uid));
     } catch (vehicleError) {

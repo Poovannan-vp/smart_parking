@@ -82,7 +82,7 @@ export async function createVehicleLog({
   // filter (only direct doc gets can), so the ownership lookup happens
   // before the transaction opens; the transaction itself only touches the
   // two documents (log + slot status) that must change atomically together.
-  const owner = await findVehicleOwner(normalizedVehicleNumber);
+  const owner = await findVehicleOwner(normalizedVehicleNumber, buildingId);
 
   try {
     await runTransaction(db, async (transaction) => {
