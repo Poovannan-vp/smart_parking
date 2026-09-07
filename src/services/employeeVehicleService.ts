@@ -6,15 +6,12 @@ import { normalizeVehicleNumber } from "./vehicleUtils";
 export interface EmployeeVehicle {
   id: string;
   userId: string;
-  /** Location snapshot added for building-scoped security lookups. Legacy records may not have it. */
   buildingId?: string;
   registrationNumber: string;
   vehicleType: "CAR" | "BIKE";
-  /** Snapshot of the owner's display name at registration time, so a lookup by plate (e.g. Security logging a gate entry) never needs a second read of `users/{uid}`. */
   employeeName?: string;
 }
 
-/** One directory row used for the gate-entry "existing vehicles" lookup/typeahead. */
 export interface VehicleDirectoryEntry {
   registrationNumber: string;
   vehicleType: "CAR" | "BIKE";
@@ -67,11 +64,6 @@ export async function deleteEmployeeVehicle(vehicleId: string) {
   await deleteDoc(doc(db, "employeeVehicles", vehicleId));
 }
 
-/**
- * The registered-vehicle directory for one building, used by Security's
- * gate-entry typeahead. The building snapshot is sourced from the employee's
- * assigned user record when the vehicle is registered.
- */
 export async function getVehicleDirectory(buildingId: string): Promise<VehicleDirectoryEntry[]> {
   const snapshot = await getDocs(
     query(collection(db, "employeeVehicles"), where("buildingId", "==", buildingId)),
@@ -88,8 +80,10 @@ export async function getVehicleDirectory(buildingId: string): Promise<VehicleDi
   });
 }
 
-/** A single plate lookup, used when Security logs a vehicle to decide REGISTERED vs UNREGISTERED. */
-export async function findVehicleOwner(registrationNumber: string, buildingId: string): Promise<VehicleDirectoryEntry | null> {
+export async function findVehicleOwner(
+  registrationNumber: string,
+  buildingId: string,
+): Promise<VehicleDirectoryEntry | null> {
   const normalizedNumber = normalizeVehicleNumber(registrationNumber);
   const snapshot = await getDocs(
     query(
