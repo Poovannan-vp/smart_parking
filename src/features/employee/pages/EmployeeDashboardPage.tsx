@@ -21,7 +21,7 @@ import {
   type EmployeeVehicle,
   updateEmployeeVehicle,
 } from "../../../services/employeeVehicleService";
-import { getActiveLogForVehicle, type VehicleLog } from "../../../services/vehicleLogService";
+import { subscribeToActiveLogForVehicle, type VehicleLog } from "../../../services/vehicleLogService";
 import { PhysicalLayoutView, LayoutSelector, useLocationLayouts, useLayout, useSlotStatuses } from "../../parking";
 
 export default function EmployeeDashboardPage() {
@@ -58,29 +58,30 @@ export default function EmployeeDashboardPage() {
       .catch(() => setError("Unable to load registered vehicles."));
   }, [user?.uid]);
 
-  // "Where is my vehicle parked" - one lookup per registered plate, refreshed
-  // whenever the vehicle list changes. Missing from the result map (rather
-  // than null) means "not looked up yet", so the UI never briefly reports a
-  // vehicle as not parked while the real answer is still in flight.
+  // "Where is my vehicle parked" follows the active vehicle-log records in
+  // realtime. A released log disappears from this map without a page refresh.
   useEffect(() => {
-    if (vehicles.length === 0 || !user?.uid) return;
+    if (!user?.uid || vehicles.length === 0) {
+      setParkedStatus({});
+      return;
+    }
 
-    let active = true;
+    setParkedStatus(Object.fromEntries(vehicles.map((vehicle) => [vehicle.registrationNumber, null])));
 
-    void Promise.all(
-      vehicles.map((vehicle) =>
-        getActiveLogForVehicle(vehicle.registrationNumber, user.uid)
-          .then((log) => [vehicle.registrationNumber, log] as const)
-          .catch(() => [vehicle.registrationNumber, null] as const),
+    const unsubscribers = vehicles.map((vehicle) =>
+      subscribeToActiveLogForVehicle(
+        vehicle.registrationNumber,
+        user.uid,
+        (log) => {
+          setParkedStatus((current) => ({ ...current, [vehicle.registrationNumber]: log }));
+        },
+        () => {
+          setParkedStatus((current) => ({ ...current, [vehicle.registrationNumber]: null }));
+        },
       ),
-    ).then((results) => {
-      if (!active) return;
-      setParkedStatus(Object.fromEntries(results));
-    });
+    );
 
-    return () => {
-      active = false;
-    };
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [vehicles, user?.uid]);
 
   useEffect(() => {

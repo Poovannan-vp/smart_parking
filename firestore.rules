@@ -89,6 +89,16 @@ service cloud.firestore {
       }
     }
 
+    match /activeVehicleSessions/{sessionId} {
+      allow read: if isAdmin() || isDeveloper() || isSecurity();
+      allow create: if isAdmin() || isDeveloper() || isSecurityFor(request.resource.data.buildingId);
+      allow update: if isAdmin() || isDeveloper() || (
+        isSecurityFor(resource.data.buildingId) &&
+        request.resource.data.buildingId == resource.data.buildingId
+      );
+      allow delete: if isAdmin() || isDeveloper() || isSecurityFor(resource.data.buildingId);
+    }
+
     match /employeeVehicles/{vehicleId} {
       // Security needs read access to look up a plate against the
       // registered-vehicle directory when logging a gate entry (see

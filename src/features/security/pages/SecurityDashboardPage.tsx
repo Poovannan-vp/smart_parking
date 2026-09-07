@@ -17,7 +17,7 @@ import {
 } from "../../../services/buildingService";
 import { setSlotStatus } from "../../../services/slotStatusService";
 import { getVehicleDirectory, type VehicleDirectoryEntry } from "../../../services/employeeVehicleService";
-import { createVehicleLog } from "../../../services/vehicleLogService";
+import { createVehicleLog, exitVehicleLog } from "../../../services/vehicleLogService";
 import type { ParkingSlot, SlotStatusValue } from "../../../types/parkingLayout";
 
 import useParking from "../hooks/useParking";
@@ -143,7 +143,13 @@ export default function SecurityDashboardPage() {
     setStatusError(null);
 
     try {
-      await setSlotStatus(selectedBuilding, selectedLayoutId, selectedSlot.id, "AVAILABLE", user.uid);
+      const entry = getEntry(selectedSlot.id);
+
+      if (entry?.logId) {
+        await exitVehicleLog({ logId: entry.logId, correctedBy: user.uid });
+      } else {
+        await setSlotStatus(selectedBuilding, selectedLayoutId, selectedSlot.id, "AVAILABLE", user.uid);
+      }
       setSelectedSlot(null);
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : "Unable to free this slot.");
